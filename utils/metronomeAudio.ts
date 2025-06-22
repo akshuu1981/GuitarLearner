@@ -27,7 +27,7 @@ export class MetronomeAudioGenerator {
 
   private async initializeAudioContext() {
     try {
-      if (!this.checkAudioSupported()) {
+      if (!this.checkAudioSupport()) {
         throw new Error('Web Audio API is not supported in this environment');
       }
 

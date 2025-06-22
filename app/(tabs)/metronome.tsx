@@ -13,7 +13,6 @@ import Animated, {
   withTiming,
   runOnJS
 } from 'react-native-reanimated';
-import Slider from '@react-native-community/slider';
 
 const HEADER_HEIGHT = 140;
 
@@ -32,6 +31,67 @@ const timeSignatures = [
   { name: '2/4', beats: 2, description: 'March time' },
   { name: '6/8', beats: 6, description: 'Compound time' },
 ];
+
+// Custom Slider component for web compatibility
+const CustomSlider = ({ 
+  value, 
+  onValueChange, 
+  minimumValue, 
+  maximumValue, 
+  step = 1,
+  style,
+  minimumTrackTintColor = '#dc2626',
+  maximumTrackTintColor = '#334155'
+}: any) => {
+  const handleChange = (event: any) => {
+    const newValue = parseFloat(event.target.value);
+    onValueChange(newValue);
+  };
+
+  return (
+    <View style={[{ flex: 1, height: 40, justifyContent: 'center' }, style]}>
+      <input
+        type="range"
+        min={minimumValue}
+        max={maximumValue}
+        step={step}
+        value={value}
+        onChange={handleChange}
+        style={{
+          width: '100%',
+          height: '6px',
+          borderRadius: '3px',
+          background: `linear-gradient(to right, ${minimumTrackTintColor} 0%, ${minimumTrackTintColor} ${((value - minimumValue) / (maximumValue - minimumValue)) * 100}%, ${maximumTrackTintColor} ${((value - minimumValue) / (maximumValue - minimumValue)) * 100}%, ${maximumTrackTintColor} 100%)`,
+          outline: 'none',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          cursor: 'pointer',
+        }}
+      />
+      <style jsx>{`
+        input[type="range"]::-webkit-slider-thumb {
+          appearance: none;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: ${minimumTrackTintColor};
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: ${minimumTrackTintColor};
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+      `}</style>
+    </View>
+  );
+};
 
 export default function MetronomeTab() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -53,6 +113,9 @@ export default function MetronomeTab() {
   }, [beatAnimation]);
 
   useEffect(() => {
+    // Check if audio is available and update state accordingly
+    setAudioEnabled(metronomeAudio.isAudioAvailable());
+    
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -73,7 +136,7 @@ export default function MetronomeTab() {
           triggerBeatAnimation();
           
           // Play metronome sound
-          if (audioEnabled) {
+          if (audioEnabled && metronomeAudio.isAudioAvailable()) {
             try {
               metronomeAudio.playBeat(nextBeat === 0, volume);
             } catch (error) {
@@ -133,7 +196,10 @@ export default function MetronomeTab() {
 
   const togglePlay = async () => {
     if (!audioEnabled) {
-      Alert.alert('Audio Disabled', 'Enable audio to hear metronome clicks');
+      Alert.alert(
+        'Audio Not Available', 
+        'Audio playback is not supported in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
       return;
     }
 
@@ -146,11 +212,22 @@ export default function MetronomeTab() {
       setIsPlaying(!isPlaying);
     } catch (error) {
       console.error('Error starting metronome:', error);
-      Alert.alert('Audio Error', 'Unable to start metronome. Please check your audio settings.');
+      Alert.alert(
+        'Audio Error', 
+        'Unable to start metronome. This feature requires a modern web browser with Web Audio API support.'
+      );
     }
   };
 
   const toggleAudio = () => {
+    if (!metronomeAudio.isAudioAvailable()) {
+      Alert.alert(
+        'Audio Not Supported',
+        'Audio playback is not available in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
+      return;
+    }
+    
     if (audioEnabled && isPlaying) {
       setIsPlaying(false);
     }
@@ -190,7 +267,7 @@ export default function MetronomeTab() {
               style={styles.audioToggle}
               onPress={toggleAudio}
             >
-              {audioEnabled ? (
+              {audioEnabled && metronomeAudio.isAudioAvailable() ? (
                 <Volume2 size={24} color="#ffffff" />
               ) : (
                 <VolumeX size={24} color="#ffffff" />
@@ -207,6 +284,14 @@ export default function MetronomeTab() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
+        {!metronomeAudio.isAudioAvailable() && (
+          <View style={styles.audioWarning}>
+            <Text style={styles.audioWarningText}>
+              ⚠️ Audio playback is not available in this environment. For the best experience, please use a modern web browser.
+            </Text>
+          </View>
+        )}
+
         {/* Main Metronome Display */}
         <View style={styles.metronomeDisplay}>
           <Animated.View style={[styles.tempoCircle, beatAnimatedStyle]}>
@@ -238,7 +323,7 @@ export default function MetronomeTab() {
           <Text style={styles.sectionTitle}>Tempo</Text>
           <View style={styles.sliderContainer}>
             <Text style={styles.sliderLabel}>40</Text>
-            <Slider
+            <CustomSlider
               style={styles.slider}
               minimumValue={40}
               maximumValue={200}
@@ -247,8 +332,6 @@ export default function MetronomeTab() {
               step={1}
               minimumTrackTintColor="#dc2626"
               maximumTrackTintColor="#334155"
-              thumbStyle={styles.sliderThumb}
-              trackStyle={styles.sliderTrack}
             />
             <Text style={styles.sliderLabel}>200</Text>
           </View>
@@ -257,13 +340,18 @@ export default function MetronomeTab() {
         {/* Control Buttons */}
         <View style={styles.controlsSection}>
           <TouchableOpacity
-            style={[styles.playButton, isPlaying && styles.playingButton]}
+            style={[
+              styles.playButton, 
+              isPlaying && styles.playingButton,
+              !metronomeAudio.isAudioAvailable() && styles.disabledButton
+            ]}
             onPress={togglePlay}
+            disabled={!metronomeAudio.isAudioAvailable()}
           >
             {isPlaying ? (
               <Pause size={32} color="#ffffff" />
             ) : (
-              <Play size={32} color="#ffffff" />
+              <Play size={32} color={!metronomeAudio.isAudioAvailable() ? "#64748b" : "#ffffff"} />
             )}
           </TouchableOpacity>
           
@@ -330,12 +418,12 @@ export default function MetronomeTab() {
         </View>
 
         {/* Volume Control */}
-        {audioEnabled && (
+        {audioEnabled && metronomeAudio.isAudioAvailable() && (
           <View style={styles.volumeSection}>
             <Text style={styles.sectionTitle}>Volume</Text>
             <View style={styles.sliderContainer}>
               <Volume2 size={16} color="#64748b" />
-              <Slider
+              <CustomSlider
                 style={styles.slider}
                 minimumValue={0.1}
                 maximumValue={1.0}
@@ -344,8 +432,6 @@ export default function MetronomeTab() {
                 step={0.1}
                 minimumTrackTintColor="#dc2626"
                 maximumTrackTintColor="#334155"
-                thumbStyle={styles.sliderThumb}
-                trackStyle={styles.sliderTrack}
               />
               <Text style={styles.volumeLabel}>{Math.round(volume * 100)}%</Text>
             </View>
@@ -446,6 +532,20 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingHorizontal: 20,
   },
+  audioWarning: {
+    backgroundColor: '#7c2d12',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ea580c',
+  },
+  audioWarningText: {
+    fontSize: 14,
+    color: '#fed7aa',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   metronomeDisplay: {
     alignItems: 'center',
     marginBottom: 40,
@@ -535,15 +635,6 @@ const styles = StyleSheet.create({
     height: 40,
     marginHorizontal: 16,
   },
-  sliderThumb: {
-    backgroundColor: '#dc2626',
-    width: 24,
-    height: 24,
-  },
-  sliderTrack: {
-    height: 6,
-    borderRadius: 3,
-  },
   sliderLabel: {
     fontSize: 14,
     color: '#94a3b8',
@@ -574,6 +665,10 @@ const styles = StyleSheet.create({
   playingButton: {
     backgroundColor: '#059669',
     shadowColor: '#059669',
+  },
+  disabledButton: {
+    backgroundColor: '#374151',
+    shadowColor: '#374151',
   },
   controlButton: {
     flexDirection: 'row',
