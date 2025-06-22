@@ -292,6 +292,9 @@ export default function ScalesTab() {
   const scrollY = useSharedValue(0);
 
   useEffect(() => {
+    // Check if audio is available and update state accordingly
+    setAudioEnabled(scaleAudio.isAudioAvailable());
+    
     return () => {
       scaleAudio.dispose();
     };
@@ -356,7 +359,10 @@ export default function ScalesTab() {
 
   const handlePlayScale = async (scale: any) => {
     if (!audioEnabled) {
-      Alert.alert('Audio Disabled', 'Enable audio to hear scale sounds');
+      Alert.alert(
+        'Audio Not Available', 
+        'Audio playback is not supported in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
       return;
     }
 
@@ -373,14 +379,20 @@ export default function ScalesTab() {
       }, (scale.notes.length * 2 * 0.45) * 1000);
     } catch (error) {
       console.error('Error playing scale:', error);
-      Alert.alert('Audio Error', 'Unable to play scale sound. Please check your audio settings.');
+      Alert.alert(
+        'Audio Error', 
+        'Unable to play scale sound. This feature requires a modern web browser with Web Audio API support.'
+      );
       setPlayingScale(null);
     }
   };
 
   const handlePlayArpeggio = async (scale: any) => {
     if (!audioEnabled) {
-      Alert.alert('Audio Disabled', 'Enable audio to hear scale sounds');
+      Alert.alert(
+        'Audio Not Available', 
+        'Audio playback is not supported in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
       return;
     }
 
@@ -397,12 +409,22 @@ export default function ScalesTab() {
       }, (scale.notes.length * 0.3 + 0.6) * 1000);
     } catch (error) {
       console.error('Error playing arpeggio:', error);
-      Alert.alert('Audio Error', 'Unable to play arpeggio sound. Please check your audio settings.');
+      Alert.alert(
+        'Audio Error', 
+        'Unable to play arpeggio sound. This feature requires a modern web browser with Web Audio API support.'
+      );
       setPlayingScale(null);
     }
   };
 
   const toggleAudio = () => {
+    if (!scaleAudio.isAudioAvailable()) {
+      Alert.alert(
+        'Audio Not Supported',
+        'Audio playback is not available in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
+      return;
+    }
     setAudioEnabled(!audioEnabled);
   };
 
@@ -422,7 +444,7 @@ export default function ScalesTab() {
               style={styles.audioToggle}
               onPress={toggleAudio}
             >
-              {audioEnabled ? (
+              {audioEnabled && scaleAudio.isAudioAvailable() ? (
                 <Volume2 size={24} color="#ffffff" />
               ) : (
                 <VolumeX size={24} color="#ffffff" />
@@ -465,7 +487,15 @@ export default function ScalesTab() {
           </Text>
         </View>
 
-        {audioEnabled && (
+        {!scaleAudio.isAudioAvailable() && (
+          <View style={styles.audioWarning}>
+            <Text style={styles.audioWarningText}>
+              ⚠️ Audio playback is not available in this environment. For the best experience, please use a modern web browser.
+            </Text>
+          </View>
+        )}
+
+        {audioEnabled && scaleAudio.isAudioAvailable() && (
           <View style={styles.audioInfo}>
             <Text style={styles.audioInfoText}>
               🎵 Tap "Play Scale" to hear ascending and descending scales, or "Practice" for arpeggios
@@ -482,15 +512,20 @@ export default function ScalesTab() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton,
-                    playingScale === scale.name && styles.playingButton
+                    playingScale === scale.name && styles.playingButton,
+                    !scaleAudio.isAudioAvailable() && styles.disabledButton
                   ]}
                   onPress={() => handlePlayScale(scale)}
-                  disabled={playingScale === scale.name}
+                  disabled={playingScale === scale.name || !scaleAudio.isAudioAvailable()}
                 >
-                  <Play size={16} color={playingScale === scale.name ? "#ffffff" : "#3b82f6"} />
+                  <Play size={16} color={
+                    !scaleAudio.isAudioAvailable() ? "#64748b" :
+                    playingScale === scale.name ? "#ffffff" : "#3b82f6"
+                  } />
                   <Text style={[
                     styles.actionText,
-                    playingScale === scale.name && styles.playingText
+                    playingScale === scale.name && styles.playingText,
+                    !scaleAudio.isAudioAvailable() && styles.disabledText
                   ]}>
                     {playingScale === scale.name ? 'Playing...' : 'Play Scale'}
                   </Text>
@@ -498,15 +533,20 @@ export default function ScalesTab() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton,
-                    playingScale === scale.name + '_arp' && styles.playingButton
+                    playingScale === scale.name + '_arp' && styles.playingButton,
+                    !scaleAudio.isAudioAvailable() && styles.disabledButton
                   ]}
                   onPress={() => handlePlayArpeggio(scale)}
-                  disabled={playingScale === scale.name + '_arp'}
+                  disabled={playingScale === scale.name + '_arp' || !scaleAudio.isAudioAvailable()}
                 >
-                  <Music size={16} color={playingScale === scale.name + '_arp' ? "#ffffff" : "#3b82f6"} />
+                  <Music size={16} color={
+                    !scaleAudio.isAudioAvailable() ? "#64748b" :
+                    playingScale === scale.name + '_arp' ? "#ffffff" : "#3b82f6"
+                  } />
                   <Text style={[
                     styles.actionText,
-                    playingScale === scale.name + '_arp' && styles.playingText
+                    playingScale === scale.name + '_arp' && styles.playingText,
+                    !scaleAudio.isAudioAvailable() && styles.disabledText
                   ]}>
                     {playingScale === scale.name + '_arp' ? 'Playing...' : 'Practice'}
                   </Text>
@@ -635,6 +675,20 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  audioWarning: {
+    backgroundColor: '#7c2d12',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ea580c',
+  },
+  audioWarningText: {
+    fontSize: 14,
+    color: '#fed7aa',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   audioInfo: {
     backgroundColor: '#1e40af20',
@@ -812,6 +866,9 @@ const styles = StyleSheet.create({
   playingButton: {
     backgroundColor: '#3b82f6',
   },
+  disabledButton: {
+    backgroundColor: '#374151',
+  },
   actionText: {
     fontSize: 12,
     color: '#3b82f6',
@@ -820,6 +877,9 @@ const styles = StyleSheet.create({
   },
   playingText: {
     color: '#ffffff',
+  },
+  disabledText: {
+    color: '#64748b',
   },
   practiceSection: {
     marginBottom: 32,

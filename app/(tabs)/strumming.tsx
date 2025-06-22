@@ -123,6 +123,9 @@ export default function StrummingTab() {
   const scrollY = useSharedValue(0);
 
   useEffect(() => {
+    // Check if audio is available and update state accordingly
+    setAudioEnabled(strummingAudio.isAudioAvailable());
+    
     return () => {
       strummingAudio.dispose();
     };
@@ -178,7 +181,10 @@ export default function StrummingTab() {
 
   const togglePlay = async (pattern: any) => {
     if (!audioEnabled) {
-      Alert.alert('Audio Disabled', 'Enable audio to hear strumming patterns');
+      Alert.alert(
+        'Audio Not Available', 
+        'Audio playback is not supported in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
       return;
     }
 
@@ -194,13 +200,24 @@ export default function StrummingTab() {
         await strummingAudio.playStrummingPattern(pattern.pattern, pattern.tempo, pattern.name);
       } catch (error) {
         console.error('Error playing strumming pattern:', error);
-        Alert.alert('Audio Error', 'Unable to play strumming pattern. Please check your audio settings.');
+        Alert.alert(
+          'Audio Error', 
+          'Unable to play strumming pattern. This feature requires a modern web browser with Web Audio API support.'
+        );
         setPlayingPattern(null);
       }
     }
   };
 
   const toggleAudio = () => {
+    if (!strummingAudio.isAudioAvailable()) {
+      Alert.alert(
+        'Audio Not Supported',
+        'Audio playback is not available in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
+      return;
+    }
+    
     if (audioEnabled && strummingAudio.isCurrentlyPlaying()) {
       strummingAudio.stopPattern();
       setPlayingPattern(null);
@@ -230,7 +247,7 @@ export default function StrummingTab() {
               style={styles.audioToggle}
               onPress={toggleAudio}
             >
-              {audioEnabled ? (
+              {audioEnabled && strummingAudio.isAudioAvailable() ? (
                 <Volume2 size={24} color="#ffffff" />
               ) : (
                 <VolumeX size={24} color="#ffffff" />
@@ -254,7 +271,15 @@ export default function StrummingTab() {
           </Text>
         </View>
 
-        {audioEnabled && (
+        {!strummingAudio.isAudioAvailable() && (
+          <View style={styles.audioWarning}>
+            <Text style={styles.audioWarningText}>
+              ⚠️ Audio playback is not available in this environment. For the best experience, please use a modern web browser.
+            </Text>
+          </View>
+        )}
+
+        {audioEnabled && strummingAudio.isAudioAvailable() && (
           <View style={styles.audioInfo}>
             <Text style={styles.audioInfoText}>
               🎵 Tap "Play" to hear strumming patterns with realistic guitar sounds
@@ -289,14 +314,16 @@ export default function StrummingTab() {
                 <TouchableOpacity
                   style={[
                     styles.playButton,
-                    playingPattern === pattern.id && styles.playingButton
+                    playingPattern === pattern.id && styles.playingButton,
+                    !strummingAudio.isAudioAvailable() && styles.disabledButton
                   ]}
                   onPress={() => togglePlay(pattern)}
+                  disabled={!strummingAudio.isAudioAvailable()}
                 >
                   {playingPattern === pattern.id ? (
                     <Pause size={20} color="#ffffff" />
                   ) : (
-                    <Play size={20} color="#ffffff" />
+                    <Play size={20} color={!strummingAudio.isAudioAvailable() ? "#64748b" : "#ffffff"} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -429,6 +456,20 @@ const styles = StyleSheet.create({
     color: '#d1fae5',
     lineHeight: 20,
   },
+  audioWarning: {
+    backgroundColor: '#7c2d12',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ea580c',
+  },
+  audioWarningText: {
+    fontSize: 14,
+    color: '#fed7aa',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   audioInfo: {
     backgroundColor: '#065f46',
     borderRadius: 12,
@@ -522,6 +563,9 @@ const styles = StyleSheet.create({
   },
   playingButton: {
     backgroundColor: '#dc2626',
+  },
+  disabledButton: {
+    backgroundColor: '#374151',
   },
   patternDescription: {
     fontSize: 14,

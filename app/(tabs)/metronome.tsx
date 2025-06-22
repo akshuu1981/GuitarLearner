@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
   runOnJS
 } from 'react-native-reanimated';
+import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const HEADER_HEIGHT = 140;
 
@@ -32,7 +33,7 @@ const timeSignatures = [
   { name: '6/8', beats: 6, description: 'Compound time' },
 ];
 
-// Custom Slider component for web compatibility
+// Custom Slider component using React Native components
 const CustomSlider = ({ 
   value, 
   onValueChange, 
@@ -43,52 +44,76 @@ const CustomSlider = ({
   minimumTrackTintColor = '#dc2626',
   maximumTrackTintColor = '#334155'
 }: any) => {
-  const handleChange = (event: any) => {
-    const newValue = parseFloat(event.target.value);
-    onValueChange(newValue);
+  const [sliderWidth, setSliderWidth] = useState(200);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleLayout = (event: any) => {
+    setSliderWidth(event.nativeEvent.layout.width);
   };
+
+  const handlePanGesture = (event: any) => {
+    const { translationX, x } = event.nativeEvent;
+    const percentage = Math.max(0, Math.min(1, x / sliderWidth));
+    const newValue = minimumValue + (percentage * (maximumValue - minimumValue));
+    const steppedValue = Math.round(newValue / step) * step;
+    onValueChange(Math.max(minimumValue, Math.min(maximumValue, steppedValue)));
+  };
+
+  const handlePress = (event: any) => {
+    const { locationX } = event.nativeEvent;
+    const percentage = Math.max(0, Math.min(1, locationX / sliderWidth));
+    const newValue = minimumValue + (percentage * (maximumValue - minimumValue));
+    const steppedValue = Math.round(newValue / step) * step;
+    onValueChange(Math.max(minimumValue, Math.min(maximumValue, steppedValue)));
+  };
+
+  const thumbPosition = ((value - minimumValue) / (maximumValue - minimumValue)) * sliderWidth;
 
   return (
     <View style={[{ flex: 1, height: 40, justifyContent: 'center' }, style]}>
-      <input
-        type="range"
-        min={minimumValue}
-        max={maximumValue}
-        step={step}
-        value={value}
-        onChange={handleChange}
-        style={{
-          width: '100%',
-          height: '6px',
-          borderRadius: '3px',
-          background: `linear-gradient(to right, ${minimumTrackTintColor} 0%, ${minimumTrackTintColor} ${((value - minimumValue) / (maximumValue - minimumValue)) * 100}%, ${maximumTrackTintColor} ${((value - minimumValue) / (maximumValue - minimumValue)) * 100}%, ${maximumTrackTintColor} 100%)`,
-          outline: 'none',
-          appearance: 'none',
-          WebkitAppearance: 'none',
-          cursor: 'pointer',
-        }}
-      />
-      <style jsx>{`
-        input[type="range"]::-webkit-slider-thumb {
-          appearance: none;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: ${minimumTrackTintColor};
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        input[type="range"]::-moz-range-thumb {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: ${minimumTrackTintColor};
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-      `}</style>
+      <TouchableOpacity
+        style={styles.sliderTrack}
+        onLayout={handleLayout}
+        onPress={handlePress}
+        activeOpacity={1}
+      >
+        {/* Track background */}
+        <View style={[styles.sliderTrackBackground, { backgroundColor: maximumTrackTintColor }]} />
+        
+        {/* Active track */}
+        <View 
+          style={[
+            styles.sliderActiveTrack, 
+            { 
+              backgroundColor: minimumTrackTintColor,
+              width: `${((value - minimumValue) / (maximumValue - minimumValue)) * 100}%`
+            }
+          ]} 
+        />
+        
+        {/* Thumb */}
+        <PanGestureHandler
+          onGestureEvent={handlePanGesture}
+          onHandlerStateChange={(event) => {
+            if (event.nativeEvent.state === 4) { // BEGAN
+              setIsDragging(true);
+            } else if (event.nativeEvent.state === 5) { // END
+              setIsDragging(false);
+            }
+          }}
+        >
+          <Animated.View
+            style={[
+              styles.sliderThumb,
+              {
+                backgroundColor: minimumTrackTintColor,
+                left: thumbPosition - 12,
+                transform: [{ scale: isDragging ? 1.2 : 1 }]
+              }
+            ]}
+          />
+        </PanGestureHandler>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -252,7 +277,7 @@ export default function MetronomeTab() {
   };
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
         <LinearGradient
           colors={['#dc2626', '#b91c1c']}
@@ -473,7 +498,7 @@ export default function MetronomeTab() {
           </View>
         </View>
       </Animated.ScrollView>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -634,6 +659,39 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     marginHorizontal: 16,
+  },
+  sliderTrack: {
+    height: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 3,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  sliderTrackBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 6,
+    borderRadius: 3,
+  },
+  sliderActiveTrack: {
+    position: 'absolute',
+    left: 0,
+    height: 6,
+    borderRadius: 3,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   sliderLabel: {
     fontSize: 14,
