@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppIcon from '@/components/AppIcon';
+import IconExporter from '@/components/IconExporter';
 
 export default function IconPreview() {
   return (
@@ -17,6 +18,21 @@ export default function IconPreview() {
         <View style={styles.iconContainer}>
           <AppIcon size={300} />
           <Text style={styles.iconLabel}>300x300 - Large Preview</Text>
+        </View>
+        
+        {/* Export Section */}
+        <View style={styles.exportSection}>
+          <Text style={styles.sectionTitle}>Export Icons</Text>
+          <Text style={styles.exportDescription}>
+            Click the buttons below to download PNG files at different sizes
+          </Text>
+          
+          <View style={styles.exportGrid}>
+            <IconExporter size={1024} filename="guitar-hero-icon-appstore" />
+            <IconExporter size={512} filename="guitar-hero-icon-large" />
+            <IconExporter size={256} filename="guitar-hero-icon-medium" />
+            <IconExporter size={128} filename="guitar-hero-icon-small" />
+          </View>
         </View>
         
         {/* Different Sizes */}
@@ -126,13 +142,13 @@ export default function IconPreview() {
           
           <View style={styles.instructionsList}>
             <Text style={styles.instruction}>
-              1. Export the icon at 1024x1024 for app store submission
+              1. Use the export buttons above to download PNG files
             </Text>
             <Text style={styles.instruction}>
-              2. Generate smaller sizes (512, 256, 128, 64, 32, 16) for various platforms
+              2. 1024x1024 is perfect for app store submission
             </Text>
             <Text style={styles.instruction}>
-              3. Use PNG format with transparency for best quality
+              3. 512x512 works great for high-resolution displays
             </Text>
             <Text style={styles.instruction}>
               4. Test visibility on both light and dark backgrounds
@@ -183,6 +199,26 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     marginTop: 16,
     fontWeight: '500',
+  },
+  exportSection: {
+    width: '100%',
+    marginBottom: 40,
+  },
+  exportDescription: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  exportGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   sizesContainer: {
     width: '100%',
