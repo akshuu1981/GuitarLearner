@@ -1,7 +1,14 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Play, Pause, Timer, Target, TrendingUp } from 'lucide-react-native';
+import Animated, { 
+  useAnimatedScrollHandler, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  interpolate,
+  Extrapolate 
+} from 'react-native-reanimated';
 
 const exercises = [
   {
@@ -96,6 +103,8 @@ const exercises = [
   },
 ];
 
+const HEADER_HEIGHT = 120;
+
 const ExerciseCard = ({ exercise, isActive, onToggle }: any) => {
   return (
     <View style={styles.exerciseCard}>
@@ -162,6 +171,47 @@ const ExerciseCard = ({ exercise, isActive, onToggle }: any) => {
 
 export default function ExercisesTab() {
   const [activeExercise, setActiveExercise] = useState<number | null>(null);
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+      [1, 0.5, 0],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+      opacity,
+    };
+  });
+
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+    };
+  });
 
   const toggleExercise = (exerciseId: number) => {
     if (activeExercise === exerciseId) {
@@ -173,82 +223,92 @@ export default function ExercisesTab() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#dc2626', '#b91c1c']}
-        style={styles.header}
+      <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+        <LinearGradient
+          colors={['#dc2626', '#b91c1c']}
+          style={styles.header}
+        >
+          <Text style={styles.headerTitle}>Guitar Exercises</Text>
+          <Text style={styles.headerSubtitle}>Build technique and finger strength</Text>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.ScrollView 
+        style={[styles.scrollView, contentAnimatedStyle]}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.headerTitle}>Guitar Exercises</Text>
-        <Text style={styles.headerSubtitle}>Build technique and finger strength</Text>
-      </LinearGradient>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Target size={24} color="#dc2626" />
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Exercises\nCompleted</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Timer size={24} color="#dc2626" />
-              <Text style={styles.statNumber}>45m</Text>
-              <Text style={styles.statLabel}>Practice\nTime</Text>
-            </View>
-            <View style={styles.statCard}>
-              <TrendingUp size={24} color="#dc2626" />
-              <Text style={styles.statNumber}>7</Text>
-              <Text style={styles.statLabel}>Day\nStreak</Text>
+        <View style={styles.content}>
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>Your Progress</Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <Target size={24} color="#dc2626" />
+                <Text style={styles.statNumber}>12</Text>
+                <Text style={styles.statLabel}>Exercises{'\n'}Completed</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Timer size={24} color="#dc2626" />
+                <Text style={styles.statNumber}>45m</Text>
+                <Text style={styles.statLabel}>Practice{'\n'}Time</Text>
+              </View>
+              <View style={styles.statCard}>
+                <TrendingUp size={24} color="#dc2626" />
+                <Text style={styles.statNumber}>7</Text>
+                <Text style={styles.statLabel}>Day{'\n'}Streak</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.exercisesSection}>
-          <Text style={styles.sectionTitle}>Technique Builders</Text>
-          {exercises.map((exercise) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              isActive={activeExercise === exercise.id}
-              onToggle={toggleExercise}
-            />
-          ))}
-        </View>
+          <View style={styles.exercisesSection}>
+            <Text style={styles.sectionTitle}>Technique Builders</Text>
+            {exercises.map((exercise) => (
+              <ExerciseCard
+                key={exercise.id}
+                exercise={exercise}
+                isActive={activeExercise === exercise.id}
+                onToggle={toggleExercise}
+              />
+            ))}
+          </View>
 
-        <View style={styles.tipsSection}>
-          <Text style={styles.sectionTitle}>Exercise Tips</Text>
-          <View style={styles.tipsContainer}>
-            <View style={styles.tip}>
-              <Text style={styles.tipIcon}>⏱️</Text>
-              <View style={styles.tipContent}>
-                <Text style={styles.tipTitle}>Start Slow</Text>
-                <Text style={styles.tipText}>Begin at a comfortable tempo and gradually increase speed</Text>
+          <View style={styles.tipsSection}>
+            <Text style={styles.sectionTitle}>Exercise Tips</Text>
+            <View style={styles.tipsContainer}>
+              <View style={styles.tip}>
+                <Text style={styles.tipIcon}>⏱️</Text>
+                <View style={styles.tipContent}>
+                  <Text style={styles.tipTitle}>Start Slow</Text>
+                  <Text style={styles.tipText}>Begin at a comfortable tempo and gradually increase speed</Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipIcon}>🎯</Text>
-              <View style={styles.tipContent}>
-                <Text style={styles.tipTitle}>Focus on Accuracy</Text>
-                <Text style={styles.tipText}>Clean, precise notes are more important than speed</Text>
+              <View style={styles.tip}>
+                <Text style={styles.tipIcon}>🎯</Text>
+                <View style={styles.tipContent}>
+                  <Text style={styles.tipTitle}>Focus on Accuracy</Text>
+                  <Text style={styles.tipText}>Clean, precise notes are more important than speed</Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipIcon}>💪</Text>
-              <View style={styles.tipContent}>
-                <Text style={styles.tipTitle}>Regular Practice</Text>
-                <Text style={styles.tipText}>15-20 minutes daily is better than long irregular sessions</Text>
+              <View style={styles.tip}>
+                <Text style={styles.tipIcon}>💪</Text>
+                <View style={styles.tipContent}>
+                  <Text style={styles.tipTitle}>Regular Practice</Text>
+                  <Text style={styles.tipText}>15-20 minutes daily is better than long irregular sessions</Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipIcon}>🤲</Text>
-              <View style={styles.tipContent}>
-                <Text style={styles.tipTitle}>Relax Your Hands</Text>
-                <Text style={styles.tipText}>Tension will slow you down and cause fatigue</Text>
+              <View style={styles.tip}>
+                <Text style={styles.tipIcon}>🤲</Text>
+                <View style={styles.tipContent}>
+                  <Text style={styles.tipTitle}>Relax Your Hands</Text>
+                  <Text style={styles.tipText}>Tension will slow you down and cause fatigue</Text>
+                </View>
               </View>
             </View>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -258,24 +318,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f172a',
   },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    height: HEADER_HEIGHT,
+  },
   header: {
+    flex: 1,
     paddingTop: 60,
-    paddingBottom: 30,
+    paddingBottom: 20,
     paddingHorizontal: 20,
+    justifyContent: 'flex-end',
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#cbd5e1',
     opacity: 0.8,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingTop: HEADER_HEIGHT,
+    paddingBottom: 100,
+  },
+  content: {
     paddingHorizontal: 20,
   },
   statsSection: {
@@ -463,7 +539,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   tipsSection: {
-    marginBottom: 100,
+    marginBottom: 32,
   },
   tipsContainer: {
     backgroundColor: '#1e293b',

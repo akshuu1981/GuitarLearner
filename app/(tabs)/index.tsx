@@ -1,6 +1,14 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState, useRef } from 'react';
 import { Play, Clock, Target, Award } from 'lucide-react-native';
+import Animated, { 
+  useAnimatedScrollHandler, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  interpolate,
+  Extrapolate 
+} from 'react-native-reanimated';
 
 const learningTopics = [
   {
@@ -53,59 +61,113 @@ const learningTopics = [
   },
 ];
 
+const HEADER_HEIGHT = 120;
+
 export default function LearnTab() {
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+      [1, 0.5, 0],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+      opacity,
+    };
+  });
+
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+    };
+  });
+
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#1e3a8a', '#3730a3']}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>Guitar Basics</Text>
-        <Text style={styles.headerSubtitle}>Master the fundamentals</Text>
-      </LinearGradient>
+      <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+        <LinearGradient
+          colors={['#1e3a8a', '#3730a3']}
+          style={styles.header}
+        >
+          <Text style={styles.headerTitle}>Guitar Basics</Text>
+          <Text style={styles.headerSubtitle}>Master the fundamentals</Text>
+        </LinearGradient>
+      </Animated.View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.progressSection}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
-          <View style={styles.progressCard}>
-            <View style={styles.progressInfo}>
-              <Text style={styles.progressText}>Beginner Level</Text>
-              <Text style={styles.progressSubtext}>3 of 6 lessons completed</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '50%' }]} />
+      <Animated.ScrollView 
+        style={[styles.scrollView, contentAnimatedStyle]}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.progressSection}>
+            <Text style={styles.sectionTitle}>Your Progress</Text>
+            <View style={styles.progressCard}>
+              <View style={styles.progressInfo}>
+                <Text style={styles.progressText}>Beginner Level</Text>
+                <Text style={styles.progressSubtext}>3 of 6 lessons completed</Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: '50%' }]} />
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.lessonsSection}>
-          <Text style={styles.sectionTitle}>Learning Path</Text>
-          {learningTopics.map((topic, index) => (
-            <TouchableOpacity key={topic.id} style={styles.lessonCard}>
-              <View style={styles.lessonIcon}>
-                {topic.icon}
-              </View>
-              <View style={styles.lessonContent}>
-                <Text style={styles.lessonTitle}>{topic.title}</Text>
-                <Text style={styles.lessonDescription}>{topic.description}</Text>
-                <View style={styles.lessonMeta}>
-                  <View style={styles.metaItem}>
-                    <Clock size={14} color="#64748b" />
-                    <Text style={styles.metaText}>{topic.duration}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Award size={14} color="#64748b" />
-                    <Text style={styles.metaText}>{topic.difficulty}</Text>
+          <View style={styles.lessonsSection}>
+            <Text style={styles.sectionTitle}>Learning Path</Text>
+            {learningTopics.map((topic, index) => (
+              <TouchableOpacity key={topic.id} style={styles.lessonCard}>
+                <View style={styles.lessonIcon}>
+                  {topic.icon}
+                </View>
+                <View style={styles.lessonContent}>
+                  <Text style={styles.lessonTitle}>{topic.title}</Text>
+                  <Text style={styles.lessonDescription}>{topic.description}</Text>
+                  <View style={styles.lessonMeta}>
+                    <View style={styles.metaItem}>
+                      <Clock size={14} color="#64748b" />
+                      <Text style={styles.metaText}>{topic.duration}</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Award size={14} color="#64748b" />
+                      <Text style={styles.metaText}>{topic.difficulty}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-              <View style={styles.lessonNumber}>
-                <Text style={styles.lessonNumberText}>{index + 1}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.lessonNumber}>
+                  <Text style={styles.lessonNumberText}>{index + 1}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -115,24 +177,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f172a',
   },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    height: HEADER_HEIGHT,
+  },
   header: {
+    flex: 1,
     paddingTop: 60,
-    paddingBottom: 30,
+    paddingBottom: 20,
     paddingHorizontal: 20,
+    justifyContent: 'flex-end',
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#cbd5e1',
     opacity: 0.8,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingTop: HEADER_HEIGHT,
+    paddingBottom: 100,
+  },
+  content: {
     paddingHorizontal: 20,
   },
   progressSection: {
@@ -177,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   lessonsSection: {
-    marginBottom: 100,
+    marginBottom: 32,
   },
   lessonCard: {
     backgroundColor: '#1e293b',

@@ -1,8 +1,15 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react-native';
 import { strummingAudio } from '@/utils/strummingAudio';
+import Animated, { 
+  useAnimatedScrollHandler, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  interpolate,
+  Extrapolate 
+} from 'react-native-reanimated';
 
 const strummingPatterns = [
   {
@@ -71,6 +78,8 @@ const strummingPatterns = [
   },
 ];
 
+const HEADER_HEIGHT = 140;
+
 const PatternVisualizer = ({ 
   pattern, 
   currentBeat, 
@@ -111,22 +120,20 @@ export default function StrummingTab() {
   const [playingPattern, setPlayingPattern] = useState<number | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [currentBeat, setCurrentBeat] = useState(0);
+  const scrollY = useSharedValue(0);
 
-  // Cleanup audio when component unmounts
   useEffect(() => {
     return () => {
       strummingAudio.dispose();
     };
   }, []);
 
-  // Monitor playing state and update beat indicator
   useEffect(() => {
     const interval = setInterval(() => {
       if (strummingAudio.isCurrentlyPlaying()) {
         const currentPattern = strummingAudio.getCurrentPattern();
         if (currentPattern) {
-          // Calculate current beat based on tempo
-          const beatDuration = 60 / currentPattern.tempo * 1000; // in milliseconds
+          const beatDuration = 60 / currentPattern.tempo * 1000;
           const elapsed = Date.now() % (currentPattern.pattern.length * beatDuration);
           const beat = Math.floor(elapsed / beatDuration);
           setCurrentBeat(beat);
@@ -142,6 +149,46 @@ export default function StrummingTab() {
     return () => clearInterval(interval);
   }, [playingPattern]);
 
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+      [1, 0.5, 0],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+      opacity,
+    };
+  });
+
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+    };
+  });
+
   const togglePlay = async (pattern: any) => {
     if (!audioEnabled) {
       Alert.alert('Audio Disabled', 'Enable audio to hear strumming patterns');
@@ -149,12 +196,10 @@ export default function StrummingTab() {
     }
 
     if (playingPattern === pattern.id) {
-      // Stop current pattern
       strummingAudio.stopPattern();
       setPlayingPattern(null);
       setCurrentBeat(0);
     } else {
-      // Stop any current pattern and start new one
       strummingAudio.stopPattern();
       
       try {
@@ -184,133 +229,143 @@ export default function StrummingTab() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#059669', '#047857']}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Strumming Patterns</Text>
-            <Text style={styles.headerSubtitle}>Master rhythm and timing</Text>
+      <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+        <LinearGradient
+          colors={['#059669', '#047857']}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>Strumming Patterns</Text>
+              <Text style={styles.headerSubtitle}>Master rhythm and timing</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.audioToggle}
+              onPress={toggleAudio}
+            >
+              {audioEnabled ? (
+                <Volume2 size={24} color="#ffffff" />
+              ) : (
+                <VolumeX size={24} color="#ffffff" />
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity 
-            style={styles.audioToggle}
-            onPress={toggleAudio}
-          >
-            {audioEnabled ? (
-              <Volume2 size={24} color="#ffffff" />
-            ) : (
-              <VolumeX size={24} color="#ffffff" />
-            )}
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </Animated.View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>💡 Pro Tip</Text>
-          <Text style={styles.tipText}>
-            Start slow and focus on consistent timing. Use a metronome and gradually increase the tempo as you get comfortable.
-          </Text>
-        </View>
-
-        {audioEnabled && (
-          <View style={styles.audioInfo}>
-            <Text style={styles.audioInfoText}>
-              🎵 Tap "Play" to hear strumming patterns with realistic guitar sounds
+      <Animated.ScrollView 
+        style={[styles.scrollView, contentAnimatedStyle]}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.tipCard}>
+            <Text style={styles.tipTitle}>💡 Pro Tip</Text>
+            <Text style={styles.tipText}>
+              Start slow and focus on consistent timing. Use a metronome and gradually increase the tempo as you get comfortable.
             </Text>
           </View>
-        )}
 
-        <View style={styles.patternsSection}>
-          <Text style={styles.sectionTitle}>Popular Patterns</Text>
-          {strummingPatterns.map((pattern) => (
-            <View key={pattern.id} style={styles.patternCard}>
-              <View style={styles.patternHeader}>
-                <View style={styles.patternInfo}>
-                  <Text style={styles.patternName}>{pattern.name}</Text>
-                  <View style={styles.patternMeta}>
-                    <View style={[styles.levelBadge, 
-                      pattern.level === 'Beginner' && styles.beginnerBadge,
-                      pattern.level === 'Intermediate' && styles.intermediateBadge,
-                      pattern.level === 'Advanced' && styles.advancedBadge
-                    ]}>
-                      <Text style={[styles.levelText,
-                        pattern.level === 'Beginner' && styles.beginnerText,
-                        pattern.level === 'Intermediate' && styles.intermediateText,
-                        pattern.level === 'Advanced' && styles.advancedText
+          {audioEnabled && (
+            <View style={styles.audioInfo}>
+              <Text style={styles.audioInfoText}>
+                🎵 Tap "Play" to hear strumming patterns with realistic guitar sounds
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.patternsSection}>
+            <Text style={styles.sectionTitle}>Popular Patterns</Text>
+            {strummingPatterns.map((pattern) => (
+              <View key={pattern.id} style={styles.patternCard}>
+                <View style={styles.patternHeader}>
+                  <View style={styles.patternInfo}>
+                    <Text style={styles.patternName}>{pattern.name}</Text>
+                    <View style={styles.patternMeta}>
+                      <View style={[styles.levelBadge, 
+                        pattern.level === 'Beginner' && styles.beginnerBadge,
+                        pattern.level === 'Intermediate' && styles.intermediateBadge,
+                        pattern.level === 'Advanced' && styles.advancedBadge
                       ]}>
-                        {pattern.level}
-                      </Text>
+                        <Text style={[styles.levelText,
+                          pattern.level === 'Beginner' && styles.beginnerText,
+                          pattern.level === 'Intermediate' && styles.intermediateText,
+                          pattern.level === 'Advanced' && styles.advancedText
+                        ]}>
+                          {pattern.level}
+                        </Text>
+                      </View>
+                      <Text style={styles.tempoText}>{pattern.tempo} BPM</Text>
                     </View>
-                    <Text style={styles.tempoText}>{pattern.tempo} BPM</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.playButton,
+                      playingPattern === pattern.id && styles.playingButton
+                    ]}
+                    onPress={() => togglePlay(pattern)}
+                  >
+                    {playingPattern === pattern.id ? (
+                      <Pause size={20} color="#ffffff" />
+                    ) : (
+                      <Play size={20} color="#ffffff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.patternDescription}>{pattern.description}</Text>
+                
+                <PatternVisualizer 
+                  pattern={pattern.pattern} 
+                  currentBeat={playingPattern === pattern.id ? currentBeat : -1}
+                  isPlaying={playingPattern === pattern.id}
+                />
+
+                <View style={styles.patternControls}>
+                  <TouchableOpacity 
+                    style={styles.controlButton}
+                    onPress={resetPattern}
+                  >
+                    <RotateCcw size={16} color="#64748b" />
+                    <Text style={styles.controlText}>Reset</Text>
+                  </TouchableOpacity>
+                  <View style={styles.tempoDisplay}>
+                    <Text style={styles.tempoLabel}>Tempo: {pattern.tempo} BPM</Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={[
-                    styles.playButton,
-                    playingPattern === pattern.id && styles.playingButton
-                  ]}
-                  onPress={() => togglePlay(pattern)}
-                >
-                  {playingPattern === pattern.id ? (
-                    <Pause size={20} color="#ffffff" />
-                  ) : (
-                    <Play size={20} color="#ffffff" />
-                  )}
-                </TouchableOpacity>
               </View>
+            ))}
+          </View>
 
-              <Text style={styles.patternDescription}>{pattern.description}</Text>
-              
-              <PatternVisualizer 
-                pattern={pattern.pattern} 
-                currentBeat={playingPattern === pattern.id ? currentBeat : -1}
-                isPlaying={playingPattern === pattern.id}
-              />
-
-              <View style={styles.patternControls}>
-                <TouchableOpacity 
-                  style={styles.controlButton}
-                  onPress={resetPattern}
-                >
-                  <RotateCcw size={16} color="#64748b" />
-                  <Text style={styles.controlText}>Reset</Text>
-                </TouchableOpacity>
-                <View style={styles.tempoDisplay}>
-                  <Text style={styles.tempoLabel}>Tempo: {pattern.tempo} BPM</Text>
-                </View>
+          <View style={styles.practiceSection}>
+            <Text style={styles.sectionTitle}>Practice Tips</Text>
+            <View style={styles.tipsContainer}>
+              <View style={styles.tip}>
+                <Text style={styles.tipNumber}>1</Text>
+                <Text style={styles.tipContent}>Keep your wrist relaxed and let it do the work</Text>
               </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.practiceSection}>
-          <Text style={styles.sectionTitle}>Practice Tips</Text>
-          <View style={styles.tipsContainer}>
-            <View style={styles.tip}>
-              <Text style={styles.tipNumber}>1</Text>
-              <Text style={styles.tipContent}>Keep your wrist relaxed and let it do the work</Text>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipNumber}>2</Text>
-              <Text style={styles.tipContent}>Practice with audio patterns to develop timing</Text>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipNumber}>3</Text>
-              <Text style={styles.tipContent}>Focus on consistent volume and tone</Text>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipNumber}>4</Text>
-              <Text style={styles.tipContent}>Start slow and gradually increase tempo</Text>
-            </View>
-            <View style={styles.tip}>
-              <Text style={styles.tipNumber}>5</Text>
-              <Text style={styles.tipContent}>Listen to the audio patterns and try to match them</Text>
+              <View style={styles.tip}>
+                <Text style={styles.tipNumber}>2</Text>
+                <Text style={styles.tipContent}>Practice with audio patterns to develop timing</Text>
+              </View>
+              <View style={styles.tip}>
+                <Text style={styles.tipNumber}>3</Text>
+                <Text style={styles.tipContent}>Focus on consistent volume and tone</Text>
+              </View>
+              <View style={styles.tip}>
+                <Text style={styles.tipNumber}>4</Text>
+                <Text style={styles.tipContent}>Start slow and gradually increase tempo</Text>
+              </View>
+              <View style={styles.tip}>
+                <Text style={styles.tipNumber}>5</Text>
+                <Text style={styles.tipContent}>Listen to the audio patterns and try to match them</Text>
+              </View>
             </View>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -320,10 +375,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f172a',
   },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    height: HEADER_HEIGHT,
+  },
   header: {
+    flex: 1,
     paddingTop: 60,
-    paddingBottom: 30,
+    paddingBottom: 20,
     paddingHorizontal: 20,
+    justifyContent: 'flex-end',
   },
   headerContent: {
     flexDirection: 'row',
@@ -334,13 +399,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#cbd5e1',
     opacity: 0.8,
   },
@@ -352,8 +417,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingTop: HEADER_HEIGHT,
+    paddingBottom: 100,
+  },
+  content: {
     paddingHorizontal: 20,
   },
   tipCard: {
@@ -556,7 +627,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   practiceSection: {
-    marginBottom: 100,
+    marginBottom: 32,
   },
   tipsContainer: {
     backgroundColor: '#1e293b',
