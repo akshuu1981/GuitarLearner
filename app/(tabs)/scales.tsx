@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Music, Play, BookOpen } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { Music, Play, BookOpen, Volume2, VolumeX } from 'lucide-react-native';
+import { scaleAudio } from '@/utils/scaleAudio';
 
 const scaleTypes = [
   { id: 'major', name: 'Major Scales', color: '#3b82f6' },
@@ -281,6 +282,15 @@ const ScaleFretboard = ({ scale }: { scale: any }) => {
 
 export default function ScalesTab() {
   const [selectedType, setSelectedType] = useState('major');
+  const [playingScale, setPlayingScale] = useState<string | null>(null);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      scaleAudio.dispose();
+    };
+  }, []);
   
   const getCurrentScales = () => {
     switch (selectedType) {
@@ -312,14 +322,81 @@ export default function ScalesTab() {
     }
   };
 
+  const handlePlayScale = async (scale: any) => {
+    if (!audioEnabled) {
+      Alert.alert('Audio Disabled', 'Enable audio to hear scale sounds');
+      return;
+    }
+
+    if (scaleAudio.isCurrentlyPlaying()) {
+      return; // Don't play if already playing
+    }
+
+    try {
+      setPlayingScale(scale.name);
+      await scaleAudio.playScale(scale.notes, scale.name);
+      
+      // Reset playing state after scale finishes
+      setTimeout(() => {
+        setPlayingScale(null);
+      }, (scale.notes.length * 2 * 0.45) * 1000); // Approximate duration
+    } catch (error) {
+      console.error('Error playing scale:', error);
+      Alert.alert('Audio Error', 'Unable to play scale sound. Please check your audio settings.');
+      setPlayingScale(null);
+    }
+  };
+
+  const handlePlayArpeggio = async (scale: any) => {
+    if (!audioEnabled) {
+      Alert.alert('Audio Disabled', 'Enable audio to hear scale sounds');
+      return;
+    }
+
+    if (scaleAudio.isCurrentlyPlaying()) {
+      return;
+    }
+
+    try {
+      setPlayingScale(scale.name + '_arp');
+      await scaleAudio.playArpeggio(scale.notes, scale.name);
+      
+      setTimeout(() => {
+        setPlayingScale(null);
+      }, (scale.notes.length * 0.3 + 0.6) * 1000);
+    } catch (error) {
+      console.error('Error playing arpeggio:', error);
+      Alert.alert('Audio Error', 'Unable to play arpeggio sound. Please check your audio settings.');
+      setPlayingScale(null);
+    }
+  };
+
+  const toggleAudio = () => {
+    setAudioEnabled(!audioEnabled);
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={['#1e40af', '#1e3a8a']}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Guitar Scales</Text>
-        <Text style={styles.headerSubtitle}>Learn scales and improve your technique</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Guitar Scales</Text>
+            <Text style={styles.headerSubtitle}>Learn scales and improve your technique</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.audioToggle}
+            onPress={toggleAudio}
+          >
+            {audioEnabled ? (
+              <Volume2 size={24} color="#ffffff" />
+            ) : (
+              <VolumeX size={24} color="#ffffff" />
+            )}
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -349,19 +426,51 @@ export default function ScalesTab() {
           </Text>
         </View>
 
+        {audioEnabled && (
+          <View style={styles.audioInfo}>
+            <Text style={styles.audioInfoText}>
+              🎵 Tap "Play Scale" to hear ascending and descending scales, or "Practice" for arpeggios
+            </Text>
+          </View>
+        )}
+
         <View style={styles.scalesSection}>
           {getCurrentScales().map((scale, index) => (
             <View key={index} style={styles.scaleCard}>
               <ScaleFretboard scale={scale} />
               
               <View style={styles.scaleActions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Play size={16} color="#3b82f6" />
-                  <Text style={styles.actionText}>Play Scale</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton,
+                    playingScale === scale.name && styles.playingButton
+                  ]}
+                  onPress={() => handlePlayScale(scale)}
+                  disabled={playingScale === scale.name}
+                >
+                  <Play size={16} color={playingScale === scale.name ? "#ffffff" : "#3b82f6"} />
+                  <Text style={[
+                    styles.actionText,
+                    playingScale === scale.name && styles.playingText
+                  ]}>
+                    {playingScale === scale.name ? 'Playing...' : 'Play Scale'}
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Music size={16} color="#3b82f6" />
-                  <Text style={styles.actionText}>Practice</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton,
+                    playingScale === scale.name + '_arp' && styles.playingButton
+                  ]}
+                  onPress={() => handlePlayArpeggio(scale)}
+                  disabled={playingScale === scale.name + '_arp'}
+                >
+                  <Music size={16} color={playingScale === scale.name + '_arp' ? "#ffffff" : "#3b82f6"} />
+                  <Text style={[
+                    styles.actionText,
+                    playingScale === scale.name + '_arp' && styles.playingText
+                  ]}>
+                    {playingScale === scale.name + '_arp' ? 'Playing...' : 'Practice'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionButton}>
                   <BookOpen size={16} color="#3b82f6" />
@@ -391,6 +500,10 @@ export default function ScalesTab() {
               <Text style={styles.practiceTitle}>🔄 Practice Variations</Text>
               <Text style={styles.practiceText}>Try different rhythms, sequences, and articulations</Text>
             </View>
+            <View style={styles.practiceItem}>
+              <Text style={styles.practiceTitle}>👂 Listen & Learn</Text>
+              <Text style={styles.practiceText}>Use the audio playback to train your ear and timing</Text>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -408,6 +521,14 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -418,6 +539,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#cbd5e1',
     opacity: 0.8,
+  },
+  audioToggle: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
@@ -454,6 +583,20 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  audioInfo: {
+    backgroundColor: '#1e40af20',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  audioInfoText: {
+    fontSize: 14,
+    color: '#93c5fd',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   scalesSection: {
     marginBottom: 32,
@@ -614,11 +757,17 @@ const styles = StyleSheet.create({
     flex: 0.32,
     justifyContent: 'center',
   },
+  playingButton: {
+    backgroundColor: '#3b82f6',
+  },
   actionText: {
     fontSize: 12,
     color: '#3b82f6',
     marginLeft: 4,
     fontWeight: '600',
+  },
+  playingText: {
+    color: '#ffffff',
   },
   practiceSection: {
     marginBottom: 100,
