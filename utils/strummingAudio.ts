@@ -10,14 +10,25 @@ export class StrummingAudioGenerator {
   }
 
   private async initializeAudioContext() {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+    try {
+      if (!this.audioContext) {
+        // Check if AudioContext is available
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) {
+          throw new Error('Web Audio API not supported in this browser');
+        }
+        
+        this.audioContext = new AudioContextClass();
+        
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
       }
+      return this.audioContext;
+    } catch (error) {
+      console.error('Failed to initialize audio context:', error);
+      throw new Error('Audio initialization failed. Please check your browser settings.');
     }
-    return this.audioContext;
   }
 
   // Guitar string frequencies for open chord (Em for strumming practice)
@@ -35,39 +46,43 @@ export class StrummingAudioGenerator {
   private createStrumSound(isDownstroke: boolean, startTime: number): void {
     if (!this.audioContext) return;
 
-    const frequencies = this.getOpenChordFrequencies();
-    const strumDuration = 0.15;
-    const stringDelay = isDownstroke ? 0.01 : -0.01; // Reverse for upstroke
+    try {
+      const frequencies = this.getOpenChordFrequencies();
+      const strumDuration = 0.15;
+      const stringDelay = isDownstroke ? 0.01 : -0.01; // Reverse for upstroke
 
-    frequencies.forEach((frequency, index) => {
-      const stringStartTime = startTime + (index * Math.abs(stringDelay));
-      
-      // Create oscillator
-      const oscillator = this.audioContext!.createOscillator();
-      const gainNode = this.audioContext!.createGain();
-      const filter = this.audioContext!.createBiquadFilter();
+      frequencies.forEach((frequency, index) => {
+        const stringStartTime = startTime + (index * Math.abs(stringDelay));
+        
+        // Create oscillator
+        const oscillator = this.audioContext!.createOscillator();
+        const gainNode = this.audioContext!.createGain();
+        const filter = this.audioContext!.createBiquadFilter();
 
-      oscillator.type = 'sawtooth';
-      oscillator.frequency.setValueAtTime(frequency, stringStartTime);
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(frequency, stringStartTime);
 
-      // Different envelope for up vs down strokes
-      const volume = isDownstroke ? 0.15 : 0.1;
-      gainNode.gain.setValueAtTime(0, stringStartTime);
-      gainNode.gain.linearRampToValueAtTime(volume, stringStartTime + 0.005);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, stringStartTime + strumDuration);
+        // Different envelope for up vs down strokes
+        const volume = isDownstroke ? 0.15 : 0.1;
+        gainNode.gain.setValueAtTime(0, stringStartTime);
+        gainNode.gain.linearRampToValueAtTime(volume, stringStartTime + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, stringStartTime + strumDuration);
 
-      // Filter for guitar-like tone
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(isDownstroke ? 2500 : 2000, stringStartTime);
-      filter.Q.setValueAtTime(1.5, stringStartTime);
+        // Filter for guitar-like tone
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(isDownstroke ? 2500 : 2000, stringStartTime);
+        filter.Q.setValueAtTime(1.5, stringStartTime);
 
-      oscillator.connect(filter);
-      filter.connect(gainNode);
-      gainNode.connect(this.audioContext!.destination);
+        oscillator.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.audioContext!.destination);
 
-      oscillator.start(stringStartTime);
-      oscillator.stop(stringStartTime + strumDuration);
-    });
+        oscillator.start(stringStartTime);
+        oscillator.stop(stringStartTime + strumDuration);
+      });
+    } catch (error) {
+      console.error('Error creating strum sound:', error);
+    }
   }
 
   async playStrummingPattern(pattern: string[], tempo: number, patternName: string): Promise<void> {
@@ -109,6 +124,8 @@ export class StrummingAudioGenerator {
     } catch (error) {
       console.error('Error playing strumming pattern:', error);
       this.isPlaying = false;
+      this.currentPattern = null;
+      throw error;
     }
   }
 
@@ -131,7 +148,7 @@ export class StrummingAudioGenerator {
 
   dispose(): void {
     this.stopPattern();
-    if (this.audioContext) {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
       this.audioContext = null;
     }

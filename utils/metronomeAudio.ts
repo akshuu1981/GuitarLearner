@@ -13,7 +13,7 @@ export class MetronomeAudioGenerator {
         // Check if AudioContext is available
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
         if (!AudioContextClass) {
-          throw new Error('Web Audio API not supported');
+          throw new Error('Web Audio API not supported in this browser');
         }
         
         this.audioContext = new AudioContextClass();
@@ -25,7 +25,7 @@ export class MetronomeAudioGenerator {
       return this.audioContext;
     } catch (error) {
       console.error('Failed to initialize audio context:', error);
-      throw error;
+      throw new Error('Audio initialization failed. Please check your browser settings.');
     }
   }
 
@@ -92,6 +92,7 @@ export class MetronomeAudioGenerator {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.isPlaying = false;
   }
 }
 

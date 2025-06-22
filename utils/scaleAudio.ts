@@ -8,14 +8,25 @@ export class ScaleAudioGenerator {
   }
 
   private async initializeAudioContext() {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+    try {
+      if (!this.audioContext) {
+        // Check if AudioContext is available
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) {
+          throw new Error('Web Audio API not supported in this browser');
+        }
+        
+        this.audioContext = new AudioContextClass();
+        
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
       }
+      return this.audioContext;
+    } catch (error) {
+      console.error('Failed to initialize audio context:', error);
+      throw new Error('Audio initialization failed. Please check your browser settings.');
     }
-    return this.audioContext;
   }
 
   // Convert note names to frequencies
@@ -45,31 +56,35 @@ export class ScaleAudioGenerator {
   private createScaleTone(frequency: number, startTime: number, duration: number): void {
     if (!this.audioContext) return;
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
-    const filter = this.audioContext.createBiquadFilter();
+    try {
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      const filter = this.audioContext.createBiquadFilter();
 
-    // Use a sine wave for cleaner scale tones
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(frequency, startTime);
+      // Use a sine wave for cleaner scale tones
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, startTime);
 
-    // Smooth envelope for scale notes
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
-    gainNode.gain.setValueAtTime(0.2, startTime + duration - 0.05);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      // Smooth envelope for scale notes
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+      gainNode.gain.setValueAtTime(0.2, startTime + duration - 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
-    // Light filtering for warmth
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(3000, startTime);
-    filter.Q.setValueAtTime(0.5, startTime);
+      // Light filtering for warmth
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3000, startTime);
+      filter.Q.setValueAtTime(0.5, startTime);
 
-    oscillator.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
 
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    } catch (error) {
+      console.error('Error creating scale tone:', error);
+    }
   }
 
   async playScale(notes: string[], scaleName: string, ascending: boolean = true): Promise<void> {
@@ -109,6 +124,7 @@ export class ScaleAudioGenerator {
     } catch (error) {
       console.error('Error playing scale:', error);
       this.isPlaying = false;
+      throw error;
     }
   }
 
@@ -137,6 +153,7 @@ export class ScaleAudioGenerator {
     } catch (error) {
       console.error('Error playing arpeggio:', error);
       this.isPlaying = false;
+      throw error;
     }
   }
 
@@ -145,10 +162,11 @@ export class ScaleAudioGenerator {
   }
 
   dispose(): void {
-    if (this.audioContext) {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.isPlaying = false;
   }
 }
 

@@ -9,15 +9,26 @@ export class ChordAudioGenerator {
   }
 
   private async initializeAudioContext() {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Resume context if it's suspended (required by browsers)
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+    try {
+      if (!this.audioContext) {
+        // Check if AudioContext is available
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) {
+          throw new Error('Web Audio API not supported in this browser');
+        }
+        
+        this.audioContext = new AudioContextClass();
+        
+        // Resume context if it's suspended (required by browsers)
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
       }
+      return this.audioContext;
+    } catch (error) {
+      console.error('Failed to initialize audio context:', error);
+      throw new Error('Audio initialization failed. Please check your browser settings.');
     }
-    return this.audioContext;
   }
 
   // Guitar string frequencies in Hz (standard tuning)
@@ -39,35 +50,39 @@ export class ChordAudioGenerator {
   private createGuitarTone(frequency: number, startTime: number, duration: number): void {
     if (!this.audioContext) return;
 
-    // Create oscillator for the fundamental frequency
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
-    
-    // Use a sawtooth wave for a more guitar-like sound
-    oscillator.type = 'sawtooth';
-    oscillator.frequency.setValueAtTime(frequency, startTime);
+    try {
+      // Create oscillator for the fundamental frequency
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      
+      // Use a sawtooth wave for a more guitar-like sound
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(frequency, startTime);
 
-    // Create envelope (attack, decay, sustain, release)
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01); // Quick attack
-    gainNode.gain.exponentialRampToValueAtTime(0.1, startTime + 0.1); // Decay
-    gainNode.gain.setValueAtTime(0.1, startTime + duration - 0.2); // Sustain
-    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Release
+      // Create envelope (attack, decay, sustain, release)
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01); // Quick attack
+      gainNode.gain.exponentialRampToValueAtTime(0.1, startTime + 0.1); // Decay
+      gainNode.gain.setValueAtTime(0.1, startTime + duration - 0.2); // Sustain
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Release
 
-    // Add some filtering for a more realistic sound
-    const filter = this.audioContext.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(2000, startTime);
-    filter.Q.setValueAtTime(1, startTime);
+      // Add some filtering for a more realistic sound
+      const filter = this.audioContext.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2000, startTime);
+      filter.Q.setValueAtTime(1, startTime);
 
-    // Connect the audio graph
-    oscillator.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
+      // Connect the audio graph
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
 
-    // Start and stop the oscillator
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
+      // Start and stop the oscillator
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    } catch (error) {
+      console.error('Error creating guitar tone:', error);
+    }
   }
 
   async playChord(chordFingers: number[], chordName: string): Promise<void> {
@@ -97,6 +112,7 @@ export class ChordAudioGenerator {
     } catch (error) {
       console.error('Error playing chord:', error);
       this.isPlaying = false;
+      throw error;
     }
   }
 
@@ -106,10 +122,11 @@ export class ChordAudioGenerator {
 
   // Clean up resources
   dispose(): void {
-    if (this.audioContext) {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.isPlaying = false;
   }
 }
 
