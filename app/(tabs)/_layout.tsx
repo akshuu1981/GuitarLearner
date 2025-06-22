@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, Music, Waves, Scale, Zap } from 'lucide-react-native';
+import { BookOpen, Music, Waves, Scale, Zap, Clock } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -55,6 +55,15 @@ export default function TabLayout() {
           title: 'Scales',
           tabBarIcon: ({ size, color }) => (
             <Scale size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="metronome"
+        options={{
+          title: 'Metronome',
+          tabBarIcon: ({ size, color }) => (
+            <Clock size={size} color={color} />
           ),
         }}
       />
