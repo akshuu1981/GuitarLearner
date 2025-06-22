@@ -93,19 +93,6 @@ export default function LearnTab() {
     };
   });
 
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_HEIGHT],
-      [0, -HEADER_HEIGHT],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ translateY }],
-    };
-  });
-
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
@@ -119,7 +106,7 @@ export default function LearnTab() {
       </Animated.View>
 
       <Animated.ScrollView 
-        style={[styles.scrollView, contentAnimatedStyle]}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -207,14 +194,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: HEADER_HEIGHT,
-    paddingBottom: 100,
-  },
-  content: {
+    paddingTop: HEADER_HEIGHT + 20,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
+  content: {
+    flex: 1,
+  },
   progressSection: {
-    marginTop: 20,
     marginBottom: 32,
   },
   sectionTitle: {

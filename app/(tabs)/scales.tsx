@@ -323,19 +323,6 @@ export default function ScalesTab() {
       opacity,
     };
   });
-
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_HEIGHT],
-      [0, -HEADER_HEIGHT],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ translateY }],
-    };
-  });
   
   const getCurrentScales = () => {
     switch (selectedType) {
@@ -446,117 +433,115 @@ export default function ScalesTab() {
       </Animated.View>
 
       <Animated.ScrollView 
-        style={[styles.scrollView, contentAnimatedStyle]}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
-          <View style={styles.typesSection}>
-            <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.types}>
-              {scaleTypes.map((type) => (
-                <TouchableOpacity
-                  key={type.id}
-                  style={[
-                    styles.typeChip,
-                    selectedType === type.id && { backgroundColor: type.color }
-                  ]}
-                  onPress={() => setSelectedType(type.id)}
-                >
-                  <Text style={[
-                    styles.typeText,
-                    selectedType === type.id && styles.typeTextActive
-                  ]}>
-                    {type.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </Animated.ScrollView>
-            
-            <Text style={styles.scaleDescription}>
-              {getScaleDescription()}
+        <View style={styles.typesSection}>
+          <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.types}>
+            {scaleTypes.map((type) => (
+              <TouchableOpacity
+                key={type.id}
+                style={[
+                  styles.typeChip,
+                  selectedType === type.id && { backgroundColor: type.color }
+                ]}
+                onPress={() => setSelectedType(type.id)}
+              >
+                <Text style={[
+                  styles.typeText,
+                  selectedType === type.id && styles.typeTextActive
+                ]}>
+                  {type.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Animated.ScrollView>
+          
+          <Text style={styles.scaleDescription}>
+            {getScaleDescription()}
+          </Text>
+        </View>
+
+        {audioEnabled && (
+          <View style={styles.audioInfo}>
+            <Text style={styles.audioInfoText}>
+              🎵 Tap "Play Scale" to hear ascending and descending scales, or "Practice" for arpeggios
             </Text>
           </View>
+        )}
 
-          {audioEnabled && (
-            <View style={styles.audioInfo}>
-              <Text style={styles.audioInfoText}>
-                🎵 Tap "Play Scale" to hear ascending and descending scales, or "Practice" for arpeggios
-              </Text>
+        <View style={styles.scalesSection}>
+          {getCurrentScales().map((scale, index) => (
+            <View key={index} style={styles.scaleCard}>
+              <ScaleFretboard scale={scale} />
+              
+              <View style={styles.scaleActions}>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton,
+                    playingScale === scale.name && styles.playingButton
+                  ]}
+                  onPress={() => handlePlayScale(scale)}
+                  disabled={playingScale === scale.name}
+                >
+                  <Play size={16} color={playingScale === scale.name ? "#ffffff" : "#3b82f6"} />
+                  <Text style={[
+                    styles.actionText,
+                    playingScale === scale.name && styles.playingText
+                  ]}>
+                    {playingScale === scale.name ? 'Playing...' : 'Play Scale'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton,
+                    playingScale === scale.name + '_arp' && styles.playingButton
+                  ]}
+                  onPress={() => handlePlayArpeggio(scale)}
+                  disabled={playingScale === scale.name + '_arp'}
+                >
+                  <Music size={16} color={playingScale === scale.name + '_arp' ? "#ffffff" : "#3b82f6"} />
+                  <Text style={[
+                    styles.actionText,
+                    playingScale === scale.name + '_arp' && styles.playingText
+                  ]}>
+                    {playingScale === scale.name + '_arp' ? 'Playing...' : 'Practice'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionButton}>
+                  <BookOpen size={16} color="#3b82f6" />
+                  <Text style={styles.actionText}>Learn More</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
+          ))}
+        </View>
 
-          <View style={styles.scalesSection}>
-            {getCurrentScales().map((scale, index) => (
-              <View key={index} style={styles.scaleCard}>
-                <ScaleFretboard scale={scale} />
-                
-                <View style={styles.scaleActions}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.actionButton,
-                      playingScale === scale.name && styles.playingButton
-                    ]}
-                    onPress={() => handlePlayScale(scale)}
-                    disabled={playingScale === scale.name}
-                  >
-                    <Play size={16} color={playingScale === scale.name ? "#ffffff" : "#3b82f6"} />
-                    <Text style={[
-                      styles.actionText,
-                      playingScale === scale.name && styles.playingText
-                    ]}>
-                      {playingScale === scale.name ? 'Playing...' : 'Play Scale'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.actionButton,
-                      playingScale === scale.name + '_arp' && styles.playingButton
-                    ]}
-                    onPress={() => handlePlayArpeggio(scale)}
-                    disabled={playingScale === scale.name + '_arp'}
-                  >
-                    <Music size={16} color={playingScale === scale.name + '_arp' ? "#ffffff" : "#3b82f6"} />
-                    <Text style={[
-                      styles.actionText,
-                      playingScale === scale.name + '_arp' && styles.playingText
-                    ]}>
-                      {playingScale === scale.name + '_arp' ? 'Playing...' : 'Practice'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <BookOpen size={16} color="#3b82f6" />
-                    <Text style={styles.actionText}>Learn More</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.practiceSection}>
-            <Text style={styles.sectionTitle}>Practice Tips</Text>
-            <View style={styles.tipsCard}>
-              <View style={styles.practiceItem}>
-                <Text style={styles.practiceTitle}>🎯 Start Slow</Text>
-                <Text style={styles.practiceText}>Begin at a comfortable tempo with a metronome</Text>
-              </View>
-              <View style={styles.practiceItem}>
-                <Text style={styles.practiceTitle}>🎼 Learn Patterns</Text>
-                <Text style={styles.practiceText}>Memorize the fretboard patterns for each scale</Text>
-              </View>
-              <View style={styles.practiceItem}>
-                <Text style={styles.practiceTitle}>🎵 Apply Musically</Text>
-                <Text style={styles.practiceText}>Practice scales over chord progressions</Text>
-              </View>
-              <View style={styles.practiceItem}>
-                <Text style={styles.practiceTitle}>🔄 Practice Variations</Text>
-                <Text style={styles.practiceText}>Try different rhythms, sequences, and articulations</Text>
-              </View>
-              <View style={styles.practiceItem}>
-                <Text style={styles.practiceTitle}>👂 Listen & Learn</Text>
-                <Text style={styles.practiceText}>Use the audio playback to train your ear and timing</Text>
-              </View>
+        <View style={styles.practiceSection}>
+          <Text style={styles.sectionTitle}>Practice Tips</Text>
+          <View style={styles.tipsCard}>
+            <View style={styles.practiceItem}>
+              <Text style={styles.practiceTitle}>🎯 Start Slow</Text>
+              <Text style={styles.practiceText}>Begin at a comfortable tempo with a metronome</Text>
+            </View>
+            <View style={styles.practiceItem}>
+              <Text style={styles.practiceTitle}>🎼 Learn Patterns</Text>
+              <Text style={styles.practiceText}>Memorize the fretboard patterns for each scale</Text>
+            </View>
+            <View style={styles.practiceItem}>
+              <Text style={styles.practiceTitle}>🎵 Apply Musically</Text>
+              <Text style={styles.practiceText}>Practice scales over chord progressions</Text>
+            </View>
+            <View style={styles.practiceItem}>
+              <Text style={styles.practiceTitle}>🔄 Practice Variations</Text>
+              <Text style={styles.practiceText}>Try different rhythms, sequences, and articulations</Text>
+            </View>
+            <View style={styles.practiceItem}>
+              <Text style={styles.practiceTitle}>👂 Listen & Learn</Text>
+              <Text style={styles.practiceText}>Use the audio playback to train your ear and timing</Text>
             </View>
           </View>
         </View>
@@ -616,14 +601,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: HEADER_HEIGHT,
-    paddingBottom: 100,
-  },
-  content: {
+    paddingTop: HEADER_HEIGHT + 20,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   typesSection: {
-    marginTop: 20,
     marginBottom: 24,
   },
   types: {

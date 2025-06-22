@@ -176,19 +176,6 @@ export default function StrummingTab() {
     };
   });
 
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_HEIGHT],
-      [0, -HEADER_HEIGHT],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ translateY }],
-    };
-  });
-
   const togglePlay = async (pattern: any) => {
     if (!audioEnabled) {
       Alert.alert('Audio Disabled', 'Enable audio to hear strumming patterns');
@@ -254,114 +241,112 @@ export default function StrummingTab() {
       </Animated.View>
 
       <Animated.ScrollView 
-        style={[styles.scrollView, contentAnimatedStyle]}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
-          <View style={styles.tipCard}>
-            <Text style={styles.tipTitle}>💡 Pro Tip</Text>
-            <Text style={styles.tipText}>
-              Start slow and focus on consistent timing. Use a metronome and gradually increase the tempo as you get comfortable.
+        <View style={styles.tipCard}>
+          <Text style={styles.tipTitle}>💡 Pro Tip</Text>
+          <Text style={styles.tipText}>
+            Start slow and focus on consistent timing. Use a metronome and gradually increase the tempo as you get comfortable.
+          </Text>
+        </View>
+
+        {audioEnabled && (
+          <View style={styles.audioInfo}>
+            <Text style={styles.audioInfoText}>
+              🎵 Tap "Play" to hear strumming patterns with realistic guitar sounds
             </Text>
           </View>
+        )}
 
-          {audioEnabled && (
-            <View style={styles.audioInfo}>
-              <Text style={styles.audioInfoText}>
-                🎵 Tap "Play" to hear strumming patterns with realistic guitar sounds
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.patternsSection}>
-            <Text style={styles.sectionTitle}>Popular Patterns</Text>
-            {strummingPatterns.map((pattern) => (
-              <View key={pattern.id} style={styles.patternCard}>
-                <View style={styles.patternHeader}>
-                  <View style={styles.patternInfo}>
-                    <Text style={styles.patternName}>{pattern.name}</Text>
-                    <View style={styles.patternMeta}>
-                      <View style={[styles.levelBadge, 
-                        pattern.level === 'Beginner' && styles.beginnerBadge,
-                        pattern.level === 'Intermediate' && styles.intermediateBadge,
-                        pattern.level === 'Advanced' && styles.advancedBadge
+        <View style={styles.patternsSection}>
+          <Text style={styles.sectionTitle}>Popular Patterns</Text>
+          {strummingPatterns.map((pattern) => (
+            <View key={pattern.id} style={styles.patternCard}>
+              <View style={styles.patternHeader}>
+                <View style={styles.patternInfo}>
+                  <Text style={styles.patternName}>{pattern.name}</Text>
+                  <View style={styles.patternMeta}>
+                    <View style={[styles.levelBadge, 
+                      pattern.level === 'Beginner' && styles.beginnerBadge,
+                      pattern.level === 'Intermediate' && styles.intermediateBadge,
+                      pattern.level === 'Advanced' && styles.advancedBadge
+                    ]}>
+                      <Text style={[styles.levelText,
+                        pattern.level === 'Beginner' && styles.beginnerText,
+                        pattern.level === 'Intermediate' && styles.intermediateText,
+                        pattern.level === 'Advanced' && styles.advancedText
                       ]}>
-                        <Text style={[styles.levelText,
-                          pattern.level === 'Beginner' && styles.beginnerText,
-                          pattern.level === 'Intermediate' && styles.intermediateText,
-                          pattern.level === 'Advanced' && styles.advancedText
-                        ]}>
-                          {pattern.level}
-                        </Text>
-                      </View>
-                      <Text style={styles.tempoText}>{pattern.tempo} BPM</Text>
+                        {pattern.level}
+                      </Text>
                     </View>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.playButton,
-                      playingPattern === pattern.id && styles.playingButton
-                    ]}
-                    onPress={() => togglePlay(pattern)}
-                  >
-                    {playingPattern === pattern.id ? (
-                      <Pause size={20} color="#ffffff" />
-                    ) : (
-                      <Play size={20} color="#ffffff" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.patternDescription}>{pattern.description}</Text>
-                
-                <PatternVisualizer 
-                  pattern={pattern.pattern} 
-                  currentBeat={playingPattern === pattern.id ? currentBeat : -1}
-                  isPlaying={playingPattern === pattern.id}
-                />
-
-                <View style={styles.patternControls}>
-                  <TouchableOpacity 
-                    style={styles.controlButton}
-                    onPress={resetPattern}
-                  >
-                    <RotateCcw size={16} color="#64748b" />
-                    <Text style={styles.controlText}>Reset</Text>
-                  </TouchableOpacity>
-                  <View style={styles.tempoDisplay}>
-                    <Text style={styles.tempoLabel}>Tempo: {pattern.tempo} BPM</Text>
+                    <Text style={styles.tempoText}>{pattern.tempo} BPM</Text>
                   </View>
                 </View>
+                <TouchableOpacity
+                  style={[
+                    styles.playButton,
+                    playingPattern === pattern.id && styles.playingButton
+                  ]}
+                  onPress={() => togglePlay(pattern)}
+                >
+                  {playingPattern === pattern.id ? (
+                    <Pause size={20} color="#ffffff" />
+                  ) : (
+                    <Play size={20} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
 
-          <View style={styles.practiceSection}>
-            <Text style={styles.sectionTitle}>Practice Tips</Text>
-            <View style={styles.tipsContainer}>
-              <View style={styles.tip}>
-                <Text style={styles.tipNumber}>1</Text>
-                <Text style={styles.tipContent}>Keep your wrist relaxed and let it do the work</Text>
+              <Text style={styles.patternDescription}>{pattern.description}</Text>
+              
+              <PatternVisualizer 
+                pattern={pattern.pattern} 
+                currentBeat={playingPattern === pattern.id ? currentBeat : -1}
+                isPlaying={playingPattern === pattern.id}
+              />
+
+              <View style={styles.patternControls}>
+                <TouchableOpacity 
+                  style={styles.controlButton}
+                  onPress={resetPattern}
+                >
+                  <RotateCcw size={16} color="#64748b" />
+                  <Text style={styles.controlText}>Reset</Text>
+                </TouchableOpacity>
+                <View style={styles.tempoDisplay}>
+                  <Text style={styles.tempoLabel}>Tempo: {pattern.tempo} BPM</Text>
+                </View>
               </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipNumber}>2</Text>
-                <Text style={styles.tipContent}>Practice with audio patterns to develop timing</Text>
-              </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipNumber}>3</Text>
-                <Text style={styles.tipContent}>Focus on consistent volume and tone</Text>
-              </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipNumber}>4</Text>
-                <Text style={styles.tipContent}>Start slow and gradually increase tempo</Text>
-              </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipNumber}>5</Text>
-                <Text style={styles.tipContent}>Listen to the audio patterns and try to match them</Text>
-              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.practiceSection}>
+          <Text style={styles.sectionTitle}>Practice Tips</Text>
+          <View style={styles.tipsContainer}>
+            <View style={styles.tip}>
+              <Text style={styles.tipNumber}>1</Text>
+              <Text style={styles.tipContent}>Keep your wrist relaxed and let it do the work</Text>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipNumber}>2</Text>
+              <Text style={styles.tipContent}>Practice with audio patterns to develop timing</Text>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipNumber}>3</Text>
+              <Text style={styles.tipContent}>Focus on consistent volume and tone</Text>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipNumber}>4</Text>
+              <Text style={styles.tipContent}>Start slow and gradually increase tempo</Text>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipNumber}>5</Text>
+              <Text style={styles.tipContent}>Listen to the audio patterns and try to match them</Text>
             </View>
           </View>
         </View>
@@ -421,17 +406,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: HEADER_HEIGHT,
-    paddingBottom: 100,
-  },
-  content: {
+    paddingTop: HEADER_HEIGHT + 20,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   tipCard: {
     backgroundColor: '#065f46',
     borderRadius: 16,
     padding: 20,
-    marginTop: 20,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#047857',

@@ -200,19 +200,6 @@ export default function ExercisesTab() {
     };
   });
 
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_HEIGHT],
-      [0, -HEADER_HEIGHT],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ translateY }],
-    };
-  });
-
   const toggleExercise = (exerciseId: number) => {
     if (activeExercise === exerciseId) {
       setActiveExercise(null);
@@ -234,76 +221,74 @@ export default function ExercisesTab() {
       </Animated.View>
 
       <Animated.ScrollView 
-        style={[styles.scrollView, contentAnimatedStyle]}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
-          <View style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>Your Progress</Text>
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Target size={24} color="#dc2626" />
-                <Text style={styles.statNumber}>12</Text>
-                <Text style={styles.statLabel}>Exercises{'\n'}Completed</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Timer size={24} color="#dc2626" />
-                <Text style={styles.statNumber}>45m</Text>
-                <Text style={styles.statLabel}>Practice{'\n'}Time</Text>
-              </View>
-              <View style={styles.statCard}>
-                <TrendingUp size={24} color="#dc2626" />
-                <Text style={styles.statNumber}>7</Text>
-                <Text style={styles.statLabel}>Day{'\n'}Streak</Text>
-              </View>
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Your Progress</Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Target size={24} color="#dc2626" />
+              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.statLabel}>Exercises{'\n'}Completed</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Timer size={24} color="#dc2626" />
+              <Text style={styles.statNumber}>45m</Text>
+              <Text style={styles.statLabel}>Practice{'\n'}Time</Text>
+            </View>
+            <View style={styles.statCard}>
+              <TrendingUp size={24} color="#dc2626" />
+              <Text style={styles.statNumber}>7</Text>
+              <Text style={styles.statLabel}>Day{'\n'}Streak</Text>
             </View>
           </View>
+        </View>
 
-          <View style={styles.exercisesSection}>
-            <Text style={styles.sectionTitle}>Technique Builders</Text>
-            {exercises.map((exercise) => (
-              <ExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                isActive={activeExercise === exercise.id}
-                onToggle={toggleExercise}
-              />
-            ))}
-          </View>
+        <View style={styles.exercisesSection}>
+          <Text style={styles.sectionTitle}>Technique Builders</Text>
+          {exercises.map((exercise) => (
+            <ExerciseCard
+              key={exercise.id}
+              exercise={exercise}
+              isActive={activeExercise === exercise.id}
+              onToggle={toggleExercise}
+            />
+          ))}
+        </View>
 
-          <View style={styles.tipsSection}>
-            <Text style={styles.sectionTitle}>Exercise Tips</Text>
-            <View style={styles.tipsContainer}>
-              <View style={styles.tip}>
-                <Text style={styles.tipIcon}>⏱️</Text>
-                <View style={styles.tipContent}>
-                  <Text style={styles.tipTitle}>Start Slow</Text>
-                  <Text style={styles.tipText}>Begin at a comfortable tempo and gradually increase speed</Text>
-                </View>
+        <View style={styles.tipsSection}>
+          <Text style={styles.sectionTitle}>Exercise Tips</Text>
+          <View style={styles.tipsContainer}>
+            <View style={styles.tip}>
+              <Text style={styles.tipIcon}>⏱️</Text>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>Start Slow</Text>
+                <Text style={styles.tipText}>Begin at a comfortable tempo and gradually increase speed</Text>
               </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipIcon}>🎯</Text>
-                <View style={styles.tipContent}>
-                  <Text style={styles.tipTitle}>Focus on Accuracy</Text>
-                  <Text style={styles.tipText}>Clean, precise notes are more important than speed</Text>
-                </View>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipIcon}>🎯</Text>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>Focus on Accuracy</Text>
+                <Text style={styles.tipText}>Clean, precise notes are more important than speed</Text>
               </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipIcon}>💪</Text>
-                <View style={styles.tipContent}>
-                  <Text style={styles.tipTitle}>Regular Practice</Text>
-                  <Text style={styles.tipText}>15-20 minutes daily is better than long irregular sessions</Text>
-                </View>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipIcon}>💪</Text>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>Regular Practice</Text>
+                <Text style={styles.tipText}>15-20 minutes daily is better than long irregular sessions</Text>
               </View>
-              <View style={styles.tip}>
-                <Text style={styles.tipIcon}>🤲</Text>
-                <View style={styles.tipContent}>
-                  <Text style={styles.tipTitle}>Relax Your Hands</Text>
-                  <Text style={styles.tipText}>Tension will slow you down and cause fatigue</Text>
-                </View>
+            </View>
+            <View style={styles.tip}>
+              <Text style={styles.tipIcon}>🤲</Text>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>Relax Your Hands</Text>
+                <Text style={styles.tipText}>Tension will slow you down and cause fatigue</Text>
               </View>
             </View>
           </View>
@@ -348,14 +333,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: HEADER_HEIGHT,
-    paddingBottom: 100,
-  },
-  content: {
+    paddingTop: HEADER_HEIGHT + 20,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   statsSection: {
-    marginTop: 20,
     marginBottom: 32,
   },
   sectionTitle: {

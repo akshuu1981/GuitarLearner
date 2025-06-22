@@ -168,19 +168,6 @@ export default function ChordsTab() {
     };
   });
 
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_HEIGHT],
-      [0, -HEADER_HEIGHT],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ translateY }],
-    };
-  });
-
   const getCurrentChords = () => {
     switch (selectedCategory) {
       case 'basic':
@@ -266,137 +253,135 @@ export default function ChordsTab() {
       </Animated.View>
 
       <Animated.ScrollView 
-        style={[styles.scrollView, contentAnimatedStyle]}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
-          <View style={styles.categoriesSection}>
-            <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
-              {chordCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === category.id && { backgroundColor: category.color }
-                  ]}
-                  onPress={() => setSelectedCategory(category.id)}
-                >
-                  <Text style={[
-                    styles.categoryText,
-                    selectedCategory === category.id && styles.categoryTextActive
-                  ]}>
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </Animated.ScrollView>
-            
-            <Text style={styles.categoryDescription}>
-              {getCategoryDescription()}
+        <View style={styles.categoriesSection}>
+          <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
+            {chordCategories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === category.id && { backgroundColor: category.color }
+                ]}
+                onPress={() => setSelectedCategory(category.id)}
+              >
+                <Text style={[
+                  styles.categoryText,
+                  selectedCategory === category.id && styles.categoryTextActive
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Animated.ScrollView>
+          
+          <Text style={styles.categoryDescription}>
+            {getCategoryDescription()}
+          </Text>
+        </View>
+
+        {audioEnabled && (
+          <View style={styles.audioInfo}>
+            <Text style={styles.audioInfoText}>
+              🎵 Tap "Play" to hear how each chord sounds
             </Text>
           </View>
+        )}
 
-          {audioEnabled && (
-            <View style={styles.audioInfo}>
-              <Text style={styles.audioInfoText}>
-                🎵 Tap "Play" to hear how each chord sounds
+        <View style={styles.chordsGrid}>
+          {getCurrentChords().map((chord, index) => (
+            <View key={index} style={styles.chordCard}>
+              <ChordDiagram chord={chord} onPlayChord={handlePlayChord} />
+              <View style={styles.chordActions}>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton,
+                    playingChord === chord.name && styles.playingButton
+                  ]}
+                  onPress={() => handlePlayChord(chord)}
+                  disabled={playingChord === chord.name}
+                >
+                  <Play size={16} color={playingChord === chord.name ? "#ffffff" : "#f97316"} />
+                  <Text style={[
+                    styles.actionText,
+                    playingChord === chord.name && styles.playingText
+                  ]}>
+                    {playingChord === chord.name ? 'Playing...' : 'Play'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionButton}>
+                  <BookOpen size={16} color="#f97316" />
+                  <Text style={styles.actionText}>Learn</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {selectedCategory === 'basic' && (
+          <View style={styles.tipSection}>
+            <Text style={styles.tipTitle}>🎸 Basic Chord Tips</Text>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipText}>
+                • Press down firmly just behind the fret wire{'\n'}
+                • Keep your thumb behind the neck for support{'\n'}
+                • Curve your fingers to avoid touching other strings{'\n'}
+                • Practice chord changes slowly at first{'\n'}
+                • Strum each string individually to check clarity
               </Text>
             </View>
-          )}
-
-          <View style={styles.chordsGrid}>
-            {getCurrentChords().map((chord, index) => (
-              <View key={index} style={styles.chordCard}>
-                <ChordDiagram chord={chord} onPlayChord={handlePlayChord} />
-                <View style={styles.chordActions}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.actionButton,
-                      playingChord === chord.name && styles.playingButton
-                    ]}
-                    onPress={() => handlePlayChord(chord)}
-                    disabled={playingChord === chord.name}
-                  >
-                    <Play size={16} color={playingChord === chord.name ? "#ffffff" : "#f97316"} />
-                    <Text style={[
-                      styles.actionText,
-                      playingChord === chord.name && styles.playingText
-                    ]}>
-                      {playingChord === chord.name ? 'Playing...' : 'Play'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <BookOpen size={16} color="#f97316" />
-                    <Text style={styles.actionText}>Learn</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
           </View>
+        )}
 
-          {selectedCategory === 'basic' && (
-            <View style={styles.tipSection}>
-              <Text style={styles.tipTitle}>🎸 Basic Chord Tips</Text>
-              <View style={styles.tipCard}>
-                <Text style={styles.tipText}>
-                  • Press down firmly just behind the fret wire{'\n'}
-                  • Keep your thumb behind the neck for support{'\n'}
-                  • Curve your fingers to avoid touching other strings{'\n'}
-                  • Practice chord changes slowly at first{'\n'}
-                  • Strum each string individually to check clarity
-                </Text>
-              </View>
+        {selectedCategory === 'barre' && (
+          <View style={styles.tipSection}>
+            <Text style={styles.tipTitle}>💡 Barre Chord Tips</Text>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipText}>
+                • Use the side of your index finger, not the pad{'\n'}
+                • Apply pressure close to the fret wire{'\n'}
+                • Keep your thumb behind the neck for support{'\n'}
+                • Practice partial barres before full barres{'\n'}
+                • Build finger strength gradually
+              </Text>
             </View>
-          )}
+          </View>
+        )}
 
-          {selectedCategory === 'barre' && (
-            <View style={styles.tipSection}>
-              <Text style={styles.tipTitle}>💡 Barre Chord Tips</Text>
-              <View style={styles.tipCard}>
-                <Text style={styles.tipText}>
-                  • Use the side of your index finger, not the pad{'\n'}
-                  • Apply pressure close to the fret wire{'\n'}
-                  • Keep your thumb behind the neck for support{'\n'}
-                  • Practice partial barres before full barres{'\n'}
-                  • Build finger strength gradually
-                </Text>
-              </View>
+        {selectedCategory === 'seventh' && (
+          <View style={styles.tipSection}>
+            <Text style={styles.tipTitle}>🎵 7th Chord Theory</Text>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipText}>
+                • Dominant 7th chords create tension that resolves{'\n'}
+                • Major 7th chords have a jazzy, sophisticated sound{'\n'}
+                • Minor 7th chords are mellow and bluesy{'\n'}
+                • Try substituting 7th chords for basic triads{'\n'}
+                • Common in blues, jazz, and funk music
+              </Text>
             </View>
-          )}
+          </View>
+        )}
 
-          {selectedCategory === 'seventh' && (
-            <View style={styles.tipSection}>
-              <Text style={styles.tipTitle}>🎵 7th Chord Theory</Text>
-              <View style={styles.tipCard}>
-                <Text style={styles.tipText}>
-                  • Dominant 7th chords create tension that resolves{'\n'}
-                  • Major 7th chords have a jazzy, sophisticated sound{'\n'}
-                  • Minor 7th chords are mellow and bluesy{'\n'}
-                  • Try substituting 7th chords for basic triads{'\n'}
-                  • Common in blues, jazz, and funk music
-                </Text>
-              </View>
+        {selectedCategory === 'sus' && (
+          <View style={styles.tipSection}>
+            <Text style={styles.tipTitle}>🎯 Suspended Chord Usage</Text>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipText}>
+                • Sus2 chords replace the 3rd with the 2nd{'\n'}
+                • Sus4 chords replace the 3rd with the 4th{'\n'}
+                • Create anticipation before resolving to major{'\n'}
+                • Great for creating movement in progressions{'\n'}
+                • Popular in rock and pop music
+              </Text>
             </View>
-          )}
-
-          {selectedCategory === 'sus' && (
-            <View style={styles.tipSection}>
-              <Text style={styles.tipTitle}>🎯 Suspended Chord Usage</Text>
-              <View style={styles.tipCard}>
-                <Text style={styles.tipText}>
-                  • Sus2 chords replace the 3rd with the 2nd{'\n'}
-                  • Sus4 chords replace the 3rd with the 4th{'\n'}
-                  • Create anticipation before resolving to major{'\n'}
-                  • Great for creating movement in progressions{'\n'}
-                  • Popular in rock and pop music
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
+          </View>
+        )}
       </Animated.ScrollView>
     </View>
   );
@@ -453,14 +438,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: HEADER_HEIGHT,
-    paddingBottom: 100,
-  },
-  content: {
+    paddingTop: HEADER_HEIGHT + 20,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   categoriesSection: {
-    marginTop: 20,
     marginBottom: 24,
   },
   categories: {
