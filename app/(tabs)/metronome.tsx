@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Volume2, VolumeX, RotateCcw, Settings } from 'lucide-react-native';
-import { metronomeAudio } from '@/utils/metronomeAudio';
+import { metronomeAudio } from '../../utils/metronomeAudio';
 import Animated, { 
   useAnimatedScrollHandler, 
   useSharedValue, 
