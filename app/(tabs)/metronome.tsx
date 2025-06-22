@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Volume2, VolumeX, RotateCcw, Settings } from 'lucide-react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, Volume2, VolumeX, RotateCcw } from 'lucide-react-native';
 import { metronomeAudio } from '../../utils/metronomeAudio';
 import Animated, { 
   useAnimatedScrollHandler, 
@@ -9,9 +9,9 @@ import Animated, {
   useAnimatedStyle, 
   interpolate,
   Extrapolate,
-  withSpring,
   withSequence,
-  withTiming
+  withTiming,
+  runOnJS
 } from 'react-native-reanimated';
 import Slider from '@react-native-community/slider';
 
@@ -44,6 +44,14 @@ export default function MetronomeTab() {
   const beatAnimation = useSharedValue(1);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Callback to trigger beat animation from JS thread
+  const triggerBeatAnimation = useCallback(() => {
+    beatAnimation.value = withSequence(
+      withTiming(1.2, { duration: 100 }),
+      withTiming(1, { duration: 200 })
+    );
+  }, [beatAnimation]);
+
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
@@ -62,14 +70,15 @@ export default function MetronomeTab() {
           const nextBeat = (prev + 1) % timeSignature.beats;
           
           // Trigger beat animation
-          beatAnimation.value = withSequence(
-            withTiming(1.2, { duration: 100 }),
-            withTiming(1, { duration: 200 })
-          );
+          triggerBeatAnimation();
           
           // Play metronome sound
           if (audioEnabled) {
-            metronomeAudio.playBeat(nextBeat === 0, volume);
+            try {
+              metronomeAudio.playBeat(nextBeat === 0, volume);
+            } catch (error) {
+              console.error('Error playing metronome beat:', error);
+            }
           }
           
           return nextBeat;
@@ -87,7 +96,7 @@ export default function MetronomeTab() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPlaying, tempo, timeSignature.beats, audioEnabled, volume]);
+  }, [isPlaying, tempo, timeSignature.beats, audioEnabled, volume, triggerBeatAnimation]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -122,15 +131,22 @@ export default function MetronomeTab() {
     };
   });
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (!audioEnabled) {
       Alert.alert('Audio Disabled', 'Enable audio to hear metronome clicks');
       return;
     }
 
-    setIsPlaying(!isPlaying);
-    if (!isPlaying) {
-      setCurrentBeat(0);
+    try {
+      if (!isPlaying) {
+        // Test audio context before starting
+        await metronomeAudio.playBeat(true, volume);
+        setCurrentBeat(0);
+      }
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error('Error starting metronome:', error);
+      Alert.alert('Audio Error', 'Unable to start metronome. Please check your audio settings.');
     }
   };
 
