@@ -76,6 +76,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="icon-preview"
+        options={{
+          title: 'Icon',
+          tabBarIcon: ({ size, color }) => (
+            <Music size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
