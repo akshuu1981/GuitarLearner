@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Music, Play, BookOpen } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { Music, Play, BookOpen, Volume2, VolumeX } from 'lucide-react-native';
+import { chordAudio } from '@/utils/audioUtils';
 
 const chordCategories = [
   { id: 'basic', name: 'Basic Chords', color: '#10b981' },
@@ -57,7 +58,13 @@ const susChords = [
   { name: 'Gsus4', difficulty: 'Medium', fingers: [3, 3, 0, 0, 3, 3] },
 ];
 
-const ChordDiagram = ({ chord }: { chord: { name: string; fingers: number[]; difficulty: string; barre?: number } }) => {
+const ChordDiagram = ({ 
+  chord, 
+  onPlayChord 
+}: { 
+  chord: { name: string; fingers: number[]; difficulty: string; barre?: number };
+  onPlayChord: (chord: any) => void;
+}) => {
   const frets = 5;
   const strings = 6;
   
@@ -118,6 +125,15 @@ const ChordDiagram = ({ chord }: { chord: { name: string; fingers: number[]; dif
 
 export default function ChordsTab() {
   const [selectedCategory, setSelectedCategory] = useState('basic');
+  const [playingChord, setPlayingChord] = useState<string | null>(null);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      chordAudio.dispose();
+    };
+  }, []);
 
   const getCurrentChords = () => {
     switch (selectedCategory) {
@@ -149,14 +165,57 @@ export default function ChordsTab() {
     }
   };
 
+  const handlePlayChord = async (chord: any) => {
+    if (!audioEnabled) {
+      Alert.alert('Audio Disabled', 'Enable audio to hear chord sounds');
+      return;
+    }
+
+    if (chordAudio.isCurrentlyPlaying()) {
+      return; // Don't play if already playing
+    }
+
+    try {
+      setPlayingChord(chord.name);
+      await chordAudio.playChord(chord.fingers, chord.name);
+      
+      // Reset playing state after 2 seconds
+      setTimeout(() => {
+        setPlayingChord(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Error playing chord:', error);
+      Alert.alert('Audio Error', 'Unable to play chord sound. Please check your audio settings.');
+      setPlayingChord(null);
+    }
+  };
+
+  const toggleAudio = () => {
+    setAudioEnabled(!audioEnabled);
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={['#7c3aed', '#3730a3']}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Chord Library</Text>
-        <Text style={styles.headerSubtitle}>Master essential guitar chords</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Chord Library</Text>
+            <Text style={styles.headerSubtitle}>Master essential guitar chords</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.audioToggle}
+            onPress={toggleAudio}
+          >
+            {audioEnabled ? (
+              <Volume2 size={24} color="#ffffff" />
+            ) : (
+              <VolumeX size={24} color="#ffffff" />
+            )}
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -186,14 +245,34 @@ export default function ChordsTab() {
           </Text>
         </View>
 
+        {audioEnabled && (
+          <View style={styles.audioInfo}>
+            <Text style={styles.audioInfoText}>
+              🎵 Tap "Play" to hear how each chord sounds
+            </Text>
+          </View>
+        )}
+
         <View style={styles.chordsGrid}>
           {getCurrentChords().map((chord, index) => (
             <View key={index} style={styles.chordCard}>
-              <ChordDiagram chord={chord} />
+              <ChordDiagram chord={chord} onPlayChord={handlePlayChord} />
               <View style={styles.chordActions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Play size={16} color="#f97316" />
-                  <Text style={styles.actionText}>Play</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton,
+                    playingChord === chord.name && styles.playingButton
+                  ]}
+                  onPress={() => handlePlayChord(chord)}
+                  disabled={playingChord === chord.name}
+                >
+                  <Play size={16} color={playingChord === chord.name ? "#ffffff" : "#f97316"} />
+                  <Text style={[
+                    styles.actionText,
+                    playingChord === chord.name && styles.playingText
+                  ]}>
+                    {playingChord === chord.name ? 'Playing...' : 'Play'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionButton}>
                   <BookOpen size={16} color="#f97316" />
@@ -278,6 +357,14 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -288,6 +375,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#cbd5e1',
     opacity: 0.8,
+  },
+  audioToggle: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
@@ -324,6 +419,20 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  audioInfo: {
+    backgroundColor: '#065f46',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#047857',
+  },
+  audioInfoText: {
+    fontSize: 14,
+    color: '#d1fae5',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   chordsGrid: {
     flexDirection: 'row',
@@ -448,11 +557,17 @@ const styles = StyleSheet.create({
     flex: 0.48,
     justifyContent: 'center',
   },
+  playingButton: {
+    backgroundColor: '#f97316',
+  },
   actionText: {
     fontSize: 12,
     color: '#f97316',
     marginLeft: 4,
     fontWeight: '600',
+  },
+  playingText: {
+    color: '#ffffff',
   },
   tipSection: {
     marginBottom: 100,
