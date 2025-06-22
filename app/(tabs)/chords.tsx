@@ -11,7 +11,7 @@ const chordCategories = [
 ];
 
 const basicChords = [
-  { name: 'C Major', difficulty: 'Easy', fingers: [0, 1, 0, 2, 3, 0] },
+  { name: 'C Major', difficulty: 'Easy', fingers: [0, 3, 2, 0, 1, 0] }, // Fixed: 3rd fret A string, 2nd fret D string, 1st fret B string
   { name: 'G Major', difficulty: 'Easy', fingers: [3, 2, 0, 0, 3, 3] },
   { name: 'D Major', difficulty: 'Easy', fingers: [0, 0, 0, 2, 3, 2] },
   { name: 'A Major', difficulty: 'Easy', fingers: [0, 0, 2, 2, 2, 0] },
@@ -46,8 +46,8 @@ const seventhChords = [
 ];
 
 const susChords = [
-  { name: 'Csus2', difficulty: 'Medium', fingers: [0, 1, 0, 0, 3, 3] },
-  { name: 'Csus4', difficulty: 'Medium', fingers: [0, 1, 0, 0, 1, 3] },
+  { name: 'Csus2', difficulty: 'Medium', fingers: [0, 3, 0, 0, 3, 3] },
+  { name: 'Csus4', difficulty: 'Medium', fingers: [0, 3, 3, 0, 1, 1] },
   { name: 'Dsus2', difficulty: 'Medium', fingers: [0, 0, 0, 2, 3, 0] },
   { name: 'Dsus4', difficulty: 'Medium', fingers: [0, 0, 0, 2, 3, 3] },
   { name: 'Esus2', difficulty: 'Medium', fingers: [0, 2, 4, 4, 0, 0] },
@@ -203,6 +203,21 @@ export default function ChordsTab() {
             </View>
           ))}
         </View>
+
+        {selectedCategory === 'basic' && (
+          <View style={styles.tipSection}>
+            <Text style={styles.tipTitle}>🎸 Basic Chord Tips</Text>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipText}>
+                • Press down firmly just behind the fret wire{'\n'}
+                • Keep your thumb behind the neck for support{'\n'}
+                • Curve your fingers to avoid touching other strings{'\n'}
+                • Practice chord changes slowly at first{'\n'}
+                • Strum each string individually to check clarity
+              </Text>
+            </View>
+          </View>
+        )}
 
         {selectedCategory === 'barre' && (
           <View style={styles.tipSection}>
