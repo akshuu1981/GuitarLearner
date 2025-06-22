@@ -2,22 +2,39 @@
 export class StrummingAudioGenerator {
   private audioContext: AudioContext | null = null;
   private isPlaying = false;
+  private isAudioSupported = false;
   private currentPattern: any = null;
   private intervalId: NodeJS.Timeout | null = null;
 
   constructor() {
+    this.checkAudioSupport();
     this.initializeAudioContext = this.initializeAudioContext.bind(this);
+  }
+
+  private checkAudioSupport(): boolean {
+    try {
+      if (typeof window === 'undefined') {
+        this.isAudioSupported = false;
+        return false;
+      }
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      this.isAudioSupported = !!AudioContextClass;
+      return this.isAudioSupported;
+    } catch (error) {
+      this.isAudioSupported = false;
+      return false;
+    }
   }
 
   private async initializeAudioContext() {
     try {
+      if (!this.checkAudioSupport()) {
+        throw new Error('Web Audio API is not supported in this environment');
+      }
+
       if (!this.audioContext) {
-        // Check if AudioContext is available
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContextClass) {
-          throw new Error('Web Audio API not supported in this browser');
-        }
-        
         this.audioContext = new AudioContextClass();
         
         if (this.audioContext.state === 'suspended') {
@@ -27,7 +44,7 @@ export class StrummingAudioGenerator {
       return this.audioContext;
     } catch (error) {
       console.error('Failed to initialize audio context:', error);
-      throw new Error('Audio initialization failed. Please check your browser settings.');
+      throw new Error('Audio is not available in this environment. This feature requires a modern web browser with Web Audio API support.');
     }
   }
 
@@ -86,6 +103,10 @@ export class StrummingAudioGenerator {
   }
 
   async playStrummingPattern(pattern: string[], tempo: number, patternName: string): Promise<void> {
+    if (!this.isAudioSupported) {
+      throw new Error('Audio playback is not supported in this environment. Please try using a modern web browser.');
+    }
+
     if (this.isPlaying) {
       this.stopPattern();
       return;
@@ -144,6 +165,10 @@ export class StrummingAudioGenerator {
 
   getCurrentPattern(): any {
     return this.currentPattern;
+  }
+
+  isAudioAvailable(): boolean {
+    return this.isAudioSupported;
   }
 
   dispose(): void {

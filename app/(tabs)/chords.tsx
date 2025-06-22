@@ -136,6 +136,9 @@ export default function ChordsTab() {
   const scrollY = useSharedValue(0);
 
   useEffect(() => {
+    // Check if audio is available and update state accordingly
+    setAudioEnabled(chordAudio.isAudioAvailable());
+    
     return () => {
       chordAudio.dispose();
     };
@@ -200,7 +203,10 @@ export default function ChordsTab() {
 
   const handlePlayChord = async (chord: any) => {
     if (!audioEnabled) {
-      Alert.alert('Audio Disabled', 'Enable audio to hear chord sounds');
+      Alert.alert(
+        'Audio Not Available', 
+        'Audio playback is not supported in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
       return;
     }
 
@@ -217,12 +223,22 @@ export default function ChordsTab() {
       }, 2000);
     } catch (error) {
       console.error('Error playing chord:', error);
-      Alert.alert('Audio Error', 'Unable to play chord sound. Please check your audio settings.');
+      Alert.alert(
+        'Audio Error', 
+        'Unable to play chord sound. This feature requires a modern web browser with Web Audio API support.'
+      );
       setPlayingChord(null);
     }
   };
 
   const toggleAudio = () => {
+    if (!chordAudio.isAudioAvailable()) {
+      Alert.alert(
+        'Audio Not Supported',
+        'Audio playback is not available in this environment. This feature requires a modern web browser with Web Audio API support.'
+      );
+      return;
+    }
     setAudioEnabled(!audioEnabled);
   };
 
@@ -242,7 +258,7 @@ export default function ChordsTab() {
               style={styles.audioToggle}
               onPress={toggleAudio}
             >
-              {audioEnabled ? (
+              {audioEnabled && chordAudio.isAudioAvailable() ? (
                 <Volume2 size={24} color="#ffffff" />
               ) : (
                 <VolumeX size={24} color="#ffffff" />
@@ -285,7 +301,15 @@ export default function ChordsTab() {
           </Text>
         </View>
 
-        {audioEnabled && (
+        {!chordAudio.isAudioAvailable() && (
+          <View style={styles.audioWarning}>
+            <Text style={styles.audioWarningText}>
+              ⚠️ Audio playback is not available in this environment. For the best experience, please use a modern web browser.
+            </Text>
+          </View>
+        )}
+
+        {audioEnabled && chordAudio.isAudioAvailable() && (
           <View style={styles.audioInfo}>
             <Text style={styles.audioInfoText}>
               🎵 Tap "Play" to hear how each chord sounds
@@ -301,15 +325,20 @@ export default function ChordsTab() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton,
-                    playingChord === chord.name && styles.playingButton
+                    playingChord === chord.name && styles.playingButton,
+                    !chordAudio.isAudioAvailable() && styles.disabledButton
                   ]}
                   onPress={() => handlePlayChord(chord)}
-                  disabled={playingChord === chord.name}
+                  disabled={playingChord === chord.name || !chordAudio.isAudioAvailable()}
                 >
-                  <Play size={16} color={playingChord === chord.name ? "#ffffff" : "#f97316"} />
+                  <Play size={16} color={
+                    !chordAudio.isAudioAvailable() ? "#64748b" :
+                    playingChord === chord.name ? "#ffffff" : "#f97316"
+                  } />
                   <Text style={[
                     styles.actionText,
-                    playingChord === chord.name && styles.playingText
+                    playingChord === chord.name && styles.playingText,
+                    !chordAudio.isAudioAvailable() && styles.disabledText
                   ]}>
                     {playingChord === chord.name ? 'Playing...' : 'Play'}
                   </Text>
@@ -473,6 +502,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
+  audioWarning: {
+    backgroundColor: '#7c2d12',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ea580c',
+  },
+  audioWarningText: {
+    fontSize: 14,
+    color: '#fed7aa',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   audioInfo: {
     backgroundColor: '#065f46',
     borderRadius: 12,
@@ -613,6 +656,9 @@ const styles = StyleSheet.create({
   playingButton: {
     backgroundColor: '#f97316',
   },
+  disabledButton: {
+    backgroundColor: '#374151',
+  },
   actionText: {
     fontSize: 12,
     color: '#f97316',
@@ -621,6 +667,9 @@ const styles = StyleSheet.create({
   },
   playingText: {
     color: '#ffffff',
+  },
+  disabledText: {
+    color: '#64748b',
   },
   tipSection: {
     marginBottom: 32,

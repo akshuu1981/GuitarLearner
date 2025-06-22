@@ -2,21 +2,39 @@
 export class ChordAudioGenerator {
   private audioContext: AudioContext | null = null;
   private isPlaying = false;
+  private isAudioSupported = false;
 
   constructor() {
-    // Initialize AudioContext only when needed (user interaction required)
+    this.checkAudioSupport();
     this.initializeAudioContext = this.initializeAudioContext.bind(this);
+  }
+
+  private checkAudioSupport(): boolean {
+    try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined') {
+        this.isAudioSupported = false;
+        return false;
+      }
+
+      // Check for Web Audio API support
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      this.isAudioSupported = !!AudioContextClass;
+      return this.isAudioSupported;
+    } catch (error) {
+      this.isAudioSupported = false;
+      return false;
+    }
   }
 
   private async initializeAudioContext() {
     try {
+      if (!this.checkAudioSupport()) {
+        throw new Error('Web Audio API is not supported in this environment');
+      }
+
       if (!this.audioContext) {
-        // Check if AudioContext is available
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContextClass) {
-          throw new Error('Web Audio API not supported in this browser');
-        }
-        
         this.audioContext = new AudioContextClass();
         
         // Resume context if it's suspended (required by browsers)
@@ -27,7 +45,7 @@ export class ChordAudioGenerator {
       return this.audioContext;
     } catch (error) {
       console.error('Failed to initialize audio context:', error);
-      throw new Error('Audio initialization failed. Please check your browser settings.');
+      throw new Error('Audio is not available in this environment. This feature requires a modern web browser with Web Audio API support.');
     }
   }
 
@@ -86,6 +104,10 @@ export class ChordAudioGenerator {
   }
 
   async playChord(chordFingers: number[], chordName: string): Promise<void> {
+    if (!this.isAudioSupported) {
+      throw new Error('Audio playback is not supported in this environment. Please try using a modern web browser.');
+    }
+
     if (this.isPlaying) return;
     
     try {
@@ -118,6 +140,10 @@ export class ChordAudioGenerator {
 
   isCurrentlyPlaying(): boolean {
     return this.isPlaying;
+  }
+
+  isAudioAvailable(): boolean {
+    return this.isAudioSupported;
   }
 
   // Clean up resources
