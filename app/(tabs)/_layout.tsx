@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, Music, Waves, Scale, Zap, Clock } from 'lucide-react-native';
+import { BookOpen, Music, Waves, Scale, Zap, Clock, TrendingUp } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -73,6 +73,15 @@ export default function TabLayout() {
           title: 'Exercises',
           tabBarIcon: ({ size, color }) => (
             <Zap size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: 'Progress',
+          tabBarIcon: ({ size, color }) => (
+            <TrendingUp size={size} color={color} />
           ),
         }}
       />
