@@ -1,18 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect } from 'react';
-import { 
-  TrendingUp, 
-  Calendar, 
-  Clock, 
-  Award, 
-  Target, 
-  Music, 
-  Zap,
-  BarChart3,
-  Trophy,
-  Star
-} from 'lucide-react-native';
+import { TrendingUp, Calendar, Clock, Award, Target, Music, Zap, ChartBar as BarChart3, Trophy, Star } from 'lucide-react-native';
 import { useUserStats, usePracticeHistory, useProgress } from '@/hooks/useProgress';
 import Animated, { 
   useAnimatedScrollHandler, 
