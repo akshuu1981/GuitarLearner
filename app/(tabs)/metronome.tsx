@@ -53,7 +53,9 @@ const CustomSlider = ({
 
   const handlePanGesture = (event: any) => {
     const { translationX, x } = event.nativeEvent;
-    const percentage = Math.max(0, Math.min(1, x / sliderWidth));
+    // Prevent division by zero by ensuring sliderWidth is not 0
+    const safeSliderWidth = sliderWidth || 1;
+    const percentage = Math.max(0, Math.min(1, x / safeSliderWidth));
     const newValue = minimumValue + (percentage * (maximumValue - minimumValue));
     const steppedValue = Math.round(newValue / step) * step;
     onValueChange(Math.max(minimumValue, Math.min(maximumValue, steppedValue)));
@@ -61,13 +63,17 @@ const CustomSlider = ({
 
   const handlePress = (event: any) => {
     const { locationX } = event.nativeEvent;
-    const percentage = Math.max(0, Math.min(1, locationX / sliderWidth));
+    // Prevent division by zero by ensuring sliderWidth is not 0
+    const safeSliderWidth = sliderWidth || 1;
+    const percentage = Math.max(0, Math.min(1, locationX / safeSliderWidth));
     const newValue = minimumValue + (percentage * (maximumValue - minimumValue));
     const steppedValue = Math.round(newValue / step) * step;
     onValueChange(Math.max(minimumValue, Math.min(maximumValue, steppedValue)));
   };
 
-  const thumbPosition = ((value - minimumValue) / (maximumValue - minimumValue)) * sliderWidth;
+  // Prevent NaN in thumbPosition calculation
+  const safeSliderWidth = sliderWidth || 1;
+  const thumbPosition = ((value - minimumValue) / (maximumValue - minimumValue)) * safeSliderWidth;
 
   return (
     <View style={[{ flex: 1, height: 40, justifyContent: 'center' }, style]}>
